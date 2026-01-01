@@ -723,9 +723,6 @@ export default function PrintWaybillPage() {
               </div>
             </div>
           </div>
-          <div className="mt-1 print:mt-0.5 text-xs print:text-xs text-gray-600">
-            <p>Contact: +966 55 1108897, Email: support@safesolution.com</p>
-          </div>
         </div>
       </div>
     </div>

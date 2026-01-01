@@ -829,7 +829,7 @@ export function OrderForm({
                             </PopoverTrigger>
                             <PopoverContent className="w-[400px] p-0" align="start">
                               <Command>
-                                <CommandInput placeholder="Search vehicles by name, plate number, or category..." />
+                                <CommandInput placeholder="Search vehicles by door no, asset no, name, or chassis no..." />
                                 <CommandList>
                                   <CommandEmpty>No vehicles found.</CommandEmpty>
                                   <CommandGroup>
@@ -840,7 +840,7 @@ export function OrderForm({
                                       .map((vehicle: any) => (
                                         <CommandItem
                                           key={vehicle.id}
-                                          value={`${vehicle.name || ''} ${vehicle.plateNumber || ''} ${vehicle.category || ''}`}
+                                          value={`${vehicle.doorNo || ''} ${vehicle.asset || ''} ${vehicle.name || ''} ${vehicle.chassisNo || ''}`}
                                           onSelect={() => {
                                             field.onChange(vehicle.id);
                                             setVehicleOpen(false);
@@ -848,20 +848,20 @@ export function OrderForm({
                                         >
                                           <div className="flex flex-col">
                                             <span>
-                                              {vehicle.name || 'Unnamed'} - {vehicle.plateNumber}
+                                              {vehicle.name || 'Unnamed'} - {vehicle.plateNumber || 'N/A'}
                                             </span>
-                                            {vehicle.category && (
+                                            {(vehicle.doorNo || vehicle.asset) && (
                                               <span className="text-xs text-muted-foreground">
-                                                {vehicle.category}
+                                                {[vehicle.doorNo, vehicle.asset].filter(Boolean).join(' / ')}
                                               </span>
                                             )}
                                           </div>
                                         </CommandItem>
                                       ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
                           </Popover>
                           {field.value && (
                             <Button
@@ -926,7 +926,7 @@ export function OrderForm({
                           </PopoverTrigger>
                           <PopoverContent className="w-[400px] p-0" align="start">
                             <Command>
-                              <CommandInput placeholder="Search attachments by name, chassis number, or category..." />
+                              <CommandInput placeholder="Search attachments by door no, asset no, name, or chassis no..." />
                               <CommandList>
                                 <CommandEmpty>No attachments found.</CommandEmpty>
                                 <CommandGroup>
@@ -935,7 +935,7 @@ export function OrderForm({
                                     .map((attachment: any) => (
                                       <CommandItem
                                         key={attachment.id}
-                                        value={`${attachment.name || ''} ${attachment.chassisNo || ''} ${attachment.category || ''}`}
+                                        value={`${attachment.doorNo || ''} ${attachment.asset || ''} ${attachment.name || ''} ${attachment.chassisNo || ''}`}
                                         onSelect={() => {
                                           field.onChange(attachment.id);
                                           setAttachmentOpen(false);
@@ -946,9 +946,9 @@ export function OrderForm({
                                             {attachment.name || 'Unnamed'} -{' '}
                                             {attachment.chassisNo || 'N/A'}
                                           </span>
-                                          {attachment.category && (
+                                          {(attachment.doorNo || attachment.asset) && (
                                             <span className="text-xs text-muted-foreground">
-                                              {attachment.category}
+                                              {[attachment.doorNo, attachment.asset].filter(Boolean).join(' / ')}
                                             </span>
                                           )}
                                         </div>

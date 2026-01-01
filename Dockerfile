@@ -9,11 +9,13 @@ RUN npm ci && \
     cd client && npm ci
 
 FROM base AS build-backend
+COPY package*.json ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY prisma ./prisma
 COPY tsconfig.json nest-cli.json ./
 COPY src ./src
-RUN npx prisma generate && \
+RUN test -f package.json || (echo "ERROR: package.json not found" && exit 1) && \
+    npx prisma generate && \
     npm run build && \
     test -f dist/main.js || (echo "ERROR: Backend build failed - dist/main.js not found" && exit 1)
 

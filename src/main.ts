@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -71,14 +72,52 @@ async function bootstrap() {
 
   if (process.env.NODE_ENV === 'production') {
     const frontendPath = join(process.cwd(), 'client', 'dist', 'public');
+    const expressApp = app.getHttpAdapter().getInstance();
 
-    app.useStaticAssets(frontendPath, {
-      prefix: '/',
+    const isApiRoute = (url: string): boolean => {
+      const apiPrefixes = [
+        '/api',
+        '/uploads',
+        '/auth',
+        '/users',
+        '/roles',
+        '/customers',
+        '/drivers',
+        '/vehicles',
+        '/locations',
+        '/credit-terms',
+        '/vehicle-types',
+        '/contracts',
+        '/contract-routes',
+        '/orders',
+        '/companies',
+      ];
+      return apiPrefixes.some((prefix) => url.startsWith(prefix));
+    };
+
+    const staticMiddleware = express.static(frontendPath, {
       index: false,
+      setHeaders: (res, path) => {
+        if (path.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      },
     });
 
-    app.getHttpAdapter().get('*', (req: any, res: any, next: any) => {
-      if (req.url.startsWith('/api') || req.url.startsWith('/uploads') || req.url.includes('.')) {
+    expressApp.use((req: any, res: any, next: any) => {
+      const url = req.url?.split('?')[0] || req.originalUrl?.split('?')[0] || '';
+      if (isApiRoute(url)) {
+        return next();
+      }
+      if (url.includes('.') && !url.endsWith('/')) {
+        return staticMiddleware(req, res, next);
+      }
+      next();
+    });
+
+    expressApp.get('*', (req: any, res: any, next: any) => {
+      const url = req.url?.split('?')[0] || req.originalUrl?.split('?')[0] || '';
+      if (isApiRoute(url)) {
         return next();
       }
       res.sendFile(join(frontendPath, 'index.html'));

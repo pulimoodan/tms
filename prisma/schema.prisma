@@ -1,0 +1,492 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  Active
+  Inactive
+  Suspended
+}
+
+enum Permission {
+  Read
+  Write
+  Update
+  Delete
+  Export
+}
+
+enum VehicleType {
+  Vehicle
+  Attachment
+  Equipment
+}
+
+enum VehicleCategory {
+  TractorHead
+  FourXTwoTractorHead
+  CraneMountedTruck
+  LightDutyTruck
+  BoomTruck
+  DieselTanker
+  MiniVan
+  Pickup
+  SUV
+  FlatBedTrailer
+  LowBedTrailer
+  DryBox
+  CurtainSide
+  HydraulicWinchWithBox
+  Forklift
+  BackhoLoader
+  RoughTerrainCrane
+  SkidLoader
+}
+
+enum DriverStatus {
+  Active
+  OnTrip
+  Vacation
+  Inactive
+}
+
+enum DriverPosition {
+  HeavyDutyDriver
+  MediumTruckDriver
+  BusDriver
+}
+
+enum VehicleStatus {
+  Active
+  InMaintenance
+  Inactive
+  OnTrip
+}
+
+enum ContractStatus {
+  Draft
+  Active
+  Expired
+  Terminated
+}
+
+enum OrderStatus {
+  Pending
+  Dispatched
+  Delivered
+  Invoiced
+}
+
+model Company {
+  id              String    @id @default(uuid())
+  name            String
+  nameArabic      String?   @map("name_arabic")
+  buildingNo      String?   @map("building_no")
+  secondaryNo     String?   @map("secondary_no")
+  street          String?
+  streetArabic    String?   @map("street_arabic")
+  district        String?
+  districtArabic  String?   @map("district_arabic")
+  postalCode      Int?      @map("postal_code")
+  country         String?
+  city            String?
+  crNo            String?   @unique @map("cr_no")
+  crExpiryDate    DateTime? @map("cr_expiry_date")
+  vatNo           String?   @map("vat_no")
+  nationalAddress String?   @map("national_address")
+  crCertificate   String?   @map("cr_certificate")
+  vatCertificate  String?   @map("vat_certificate")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  updatedById     String?   @map("updated_by_id")
+
+  updatedBy       User?            @relation("CompanyUpdatedBy", fields: [updatedById], references: [id])
+  customers       Customer[]
+  contracts       Contract[]
+  contractRoutes  ContractRoute[]
+  customerRoutes  CustomerRoute[]
+  vehicles        Vehicle[]
+  drivers         Driver[]
+  orders          Order[]
+  locations       Location[]
+  creditTerms     CreditTerm[]
+  users           User[]
+  roles           Role[]
+  rolePermissions RolePermission[]
+
+  @@map("companies")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  companyId    String     @map("company_id")
+  name         String
+  email        String     @unique
+  roleId       String     @map("role_id")
+  status       UserStatus @default(Active)
+  passwordHash String     @map("password_hash")
+  lastLoginAt  DateTime?  @map("last_login_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  createdById  String?    @map("created_by_id")
+  updatedById  String?    @map("updated_by_id")
+
+  company                Company          @relation(fields: [companyId], references: [id])
+  role                   Role             @relation("UserRole", fields: [roleId], references: [id])
+  createdBy              User?            @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedBy              User?            @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+  createdUsers           User[]           @relation("UserCreatedBy")
+  updatedUsers           User[]           @relation("UserUpdatedBy")
+  createdRoles           Role[]           @relation("RoleCreatedBy")
+  updatedRoles           Role[]           @relation("RoleUpdatedBy")
+  createdRolePermissions RolePermission[] @relation("RolePermissionCreatedBy")
+  updatedRolePermissions RolePermission[] @relation("RolePermissionUpdatedBy")
+  createdCreditTerms     CreditTerm[]     @relation("CreditTermCreatedBy")
+  updatedCreditTerms     CreditTerm[]     @relation("CreditTermUpdatedBy")
+  createdLocations       Location[]       @relation("LocationCreatedBy")
+  updatedLocations       Location[]       @relation("LocationUpdatedBy")
+  createdDrivers         Driver[]         @relation("DriverCreatedBy")
+  updatedDrivers         Driver[]         @relation("DriverUpdatedBy")
+  createdVehicles        Vehicle[]        @relation("VehicleCreatedBy")
+  updatedVehicles        Vehicle[]        @relation("VehicleUpdatedBy")
+  createdCustomers       Customer[]       @relation("CustomerCreatedBy")
+  updatedCustomers       Customer[]       @relation("CustomerUpdatedBy")
+  createdContracts       Contract[]       @relation("ContractCreatedBy")
+  updatedContracts       Contract[]       @relation("ContractUpdatedBy")
+  createdContractRoutes  ContractRoute[]  @relation("ContractRouteCreatedBy")
+  updatedContractRoutes  ContractRoute[]  @relation("ContractRouteUpdatedBy")
+  createdCustomerRoutes  CustomerRoute[]  @relation("CustomerRouteCreatedBy")
+  updatedCustomerRoutes  CustomerRoute[]  @relation("CustomerRouteUpdatedBy")
+  createdOrders          Order[]          @relation("OrderCreatedBy")
+  updatedOrders          Order[]          @relation("OrderUpdatedBy")
+  updatedCompanies       Company[]        @relation("CompanyUpdatedBy")
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  name        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String?  @map("created_by_id")
+  updatedById String?  @map("updated_by_id")
+
+  company     Company          @relation(fields: [companyId], references: [id])
+  users       User[]           @relation("UserRole")
+  permissions RolePermission[]
+  createdBy   User?            @relation("RoleCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?            @relation("RoleUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("roles")
+}
+
+model RolePermission {
+  id          String       @id @default(uuid())
+  companyId   String       @map("company_id")
+  roleId      String       @map("role_id")
+  module      String
+  permissions Permission[]
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  createdById String?      @map("created_by_id")
+  updatedById String?      @map("updated_by_id")
+
+  company   Company @relation(fields: [companyId], references: [id])
+  role      Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdBy User?   @relation("RolePermissionCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?   @relation("RolePermissionUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([roleId, module])
+  @@map("role_permissions")
+}
+
+model CreditTerm {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  name        String
+  description String?
+  paymentDays Int      @map("payment_days")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String?  @map("created_by_id")
+  updatedById String?  @map("updated_by_id")
+
+  company   Company    @relation(fields: [companyId], references: [id])
+  createdBy User?      @relation("CreditTermCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?      @relation("CreditTermUpdatedBy", fields: [updatedById], references: [id])
+  contracts Contract[]
+
+  @@map("credit_terms")
+}
+
+model Location {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  name        String
+  code        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String?  @map("created_by_id")
+  updatedById String?  @map("updated_by_id")
+
+  company            Company         @relation(fields: [companyId], references: [id])
+  createdBy          User?           @relation("LocationCreatedBy", fields: [createdById], references: [id])
+  updatedBy          User?           @relation("LocationUpdatedBy", fields: [updatedById], references: [id])
+  routesFrom         ContractRoute[] @relation("RouteFrom")
+  routesTo           ContractRoute[] @relation("RouteTo")
+  ordersFrom         Order[]         @relation("OrderFrom")
+  ordersTo           Order[]         @relation("OrderTo")
+  customerRoutesFrom CustomerRoute[] @relation("CustomerRouteFrom")
+  customerRoutesTo   CustomerRoute[] @relation("CustomerRouteTo")
+
+  @@unique([companyId, code])
+  @@map("locations")
+}
+
+model Driver {
+  id                String          @id @default(uuid())
+  companyId         String          @map("company_id")
+  badgeNo           String?         @map("badge_no")
+  name              String
+  iqamaNumber       String          @map("iqama_number")
+  position          DriverPosition?
+  sponsorship       String?
+  nationality       String
+  driverCardExpiry  DateTime?       @map("driver_card_expiry")
+  mobile            String?
+  preferredLanguage String?         @map("preferred_language")
+  status            DriverStatus    @default(Active)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  createdById       String?         @map("created_by_id")
+  updatedById       String?         @map("updated_by_id")
+
+  company   Company @relation(fields: [companyId], references: [id])
+  createdBy User?   @relation("DriverCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?   @relation("DriverUpdatedBy", fields: [updatedById], references: [id])
+  orders    Order[]
+
+  @@map("drivers")
+}
+
+model Vehicle {
+  id                String          @id @default(uuid())
+  companyId         String          @map("company_id")
+  name              String
+  type              VehicleType
+  category          VehicleCategory
+  asset             String?         @map("asset")
+  doorNo            String?         @map("door_no")
+  plateNumber       String?         @map("plate_number")
+  plateNumberArabic String?         @map("plate_number_arabic")
+  chassisNo         String?         @map("chassis_no")
+  sequenceNo        String?         @map("sequence_no")
+  engineModel       String?         @map("engine_model")
+  equipmentNo       String?         @map("equipment_no")
+  equipmentType     String?         @map("equipment_type")
+  horsePower        Int?            @map("horse_power")
+  manufacturingYear Int?            @map("manufacturing_year")
+  make              String?
+  model             String?
+  engineSerialNo    String?         @map("engine_serial_no")
+  status            VehicleStatus   @default(Active)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  createdById       String?         @map("created_by_id")
+  updatedById       String?         @map("updated_by_id")
+
+  company          Company @relation(fields: [companyId], references: [id])
+  vehicleOrders    Order[] @relation("OrderVehicle")
+  attachmentOrders Order[] @relation("OrderAttachment")
+  createdBy        User?   @relation("VehicleCreatedBy", fields: [createdById], references: [id])
+  updatedBy        User?   @relation("VehicleUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("vehicles")
+}
+
+model Customer {
+  id              String    @id @default(uuid())
+  companyId       String    @map("company_id")
+  name            String
+  nameArabic      String?   @map("name_arabic")
+  buildingNo      String?   @map("building_no")
+  secondaryNo     String?   @map("secondary_no")
+  street          String?
+  streetArabic    String?   @map("street_arabic")
+  district        String?
+  districtArabic  String?   @map("district_arabic")
+  postalCode      Int?      @map("postal_code")
+  country         String?
+  city            String?
+  crNo            String?   @map("cr_no")
+  crExpiryDate    DateTime? @map("cr_expiry_date")
+  vatNo           String?   @map("vat_no")
+  nationalAddress String?   @map("national_address")
+  crCertificate   String?   @map("cr_certificate")
+  vatCertificate  String?   @map("vat_certificate")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdById     String?   @map("created_by_id")
+  updatedById     String?   @map("updated_by_id")
+
+  company   Company         @relation(fields: [companyId], references: [id])
+  createdBy User?           @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?           @relation("CustomerUpdatedBy", fields: [updatedById], references: [id])
+  contracts Contract[]
+  orders    Order[]
+  routes    CustomerRoute[]
+
+  @@map("customers")
+}
+
+model Contract {
+  id              String         @id @default(uuid())
+  companyId       String         @map("company_id")
+  customerId      String         @map("customer_id")
+  contractNumber  String         @map("contract_number")
+  startDate       DateTime       @map("start_date")
+  endDate         DateTime       @map("end_date")
+  creditTermId    String         @map("credit_term_id")
+  material        String?
+  maxWaitingHours Int?           @map("max_waiting_hours")
+  waitingCharge   Int?           @map("waiting_charge")
+  bankGuarantee   Boolean        @default(false) @map("bank_guarantee")
+  insurance       Boolean        @default(false)
+  status          ContractStatus @default(Draft)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  createdById     String?        @map("created_by_id")
+  updatedById     String?        @map("updated_by_id")
+
+  company    Company         @relation(fields: [companyId], references: [id])
+  customer   Customer        @relation(fields: [customerId], references: [id])
+  creditTerm CreditTerm      @relation(fields: [creditTermId], references: [id])
+  routes     ContractRoute[]
+  orders     Order[]
+  createdBy  User?           @relation("ContractCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User?           @relation("ContractUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([companyId, contractNumber])
+  @@map("contracts")
+}
+
+model ContractRoute {
+  id              String          @id @default(uuid())
+  companyId       String          @map("company_id")
+  contractId      String          @map("contract_id")
+  fromId          String          @map("from_id")
+  toId            String          @map("to_id")
+  vehicleCategory VehicleCategory @map("vehicle_category")
+  price           Decimal
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  createdById     String?         @map("created_by_id")
+  updatedById     String?         @map("updated_by_id")
+
+  company   Company  @relation(fields: [companyId], references: [id])
+  contract  Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  from      Location @relation("RouteFrom", fields: [fromId], references: [id])
+  to        Location @relation("RouteTo", fields: [toId], references: [id])
+  createdBy User?    @relation("ContractRouteCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?    @relation("ContractRouteUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("contract_routes")
+}
+
+model Order {
+  id           String      @id @default(uuid())
+  companyId    String      @map("company_id")
+  customerId   String      @map("customer_id")
+  orderNo      String      @map("order_no")
+  contractId   String?     @map("contract_id")
+  fromId       String      @map("from_id")
+  toId         String      @map("to_id")
+  weight       Decimal?
+  volume       Decimal?
+  value        Decimal?
+  vehicleId    String?     @map("vehicle_id")
+  attachmentId String?     @map("attachment_id")
+  driverId     String?     @map("driver_id")
+  status       OrderStatus @default(Pending)
+
+  // Waybill specific fields
+  tripNumber              String?   @map("trip_number")
+  cargoDescription        String?   @map("cargo_description")
+  sealNumber              String?   @map("seal_number")
+  startKms                Int?      @map("start_kms")
+  kmOut                   Int?      @map("km_out")
+  kmIn                    Int?      @map("km_in")
+  runKm                   Int?      @map("run_km")
+  eta                     DateTime? @map("eta")
+  requestedDate           DateTime? @map("requested_date")
+  requestedTime           String?   @map("requested_time")
+  arrivalAtLoading        DateTime? @map("arrival_at_loading")
+  completedLoading        DateTime? @map("completed_loading")
+  dispatchFromLoading     DateTime? @map("dispatch_from_loading")
+  arrivalAtOffloading     DateTime? @map("arrival_at_offloading")
+  completedUnloading      DateTime? @map("completed_unloading")
+  remarks                 String?   @map("remarks")
+  recipientAcknowledgment String?   @map("recipient_acknowledgment")
+
+  // Additional cargo and shipping fields
+  bookingNumber   String?  @map("booking_number")
+  vesselName      String?  @map("vessel_name")
+  croNumber       String?  @map("cro_number")
+  customerContact String?  @map("customer_contact")
+  transporter     String?  @map("transporter")
+  portOfLoading   String?  @map("port_of_loading")
+  shippingLine    String?  @map("shipping_line")
+  containerNumber String?  @map("container_number")
+  containerSize   String?  @map("container_size")
+  weightUom       String?  @map("weight_uom")
+  tareWeight      Decimal? @map("tare_weight")
+  trailerNumber   String?  @map("trailer_number")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String?  @map("created_by_id")
+  updatedById String?  @map("updated_by_id")
+
+  company    Company   @relation(fields: [companyId], references: [id])
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  contract   Contract? @relation(fields: [contractId], references: [id])
+  from       Location  @relation("OrderFrom", fields: [fromId], references: [id])
+  to         Location  @relation("OrderTo", fields: [toId], references: [id])
+  vehicle    Vehicle?  @relation("OrderVehicle", fields: [vehicleId], references: [id])
+  attachment Vehicle?  @relation("OrderAttachment", fields: [attachmentId], references: [id])
+  driver     Driver?   @relation(fields: [driverId], references: [id])
+  createdBy  User?     @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  updatedBy  User?     @relation("OrderUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([companyId, orderNo])
+  @@map("orders")
+}
+
+model CustomerRoute {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  customerId  String   @map("customer_id")
+  fromId      String   @map("from_id")
+  toId        String   @map("to_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String?  @map("created_by_id")
+  updatedById String?  @map("updated_by_id")
+
+  company   Company  @relation(fields: [companyId], references: [id])
+  customer  Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  from      Location @relation("CustomerRouteFrom", fields: [fromId], references: [id])
+  to        Location @relation("CustomerRouteTo", fields: [toId], references: [id])
+  createdBy User?    @relation("CustomerRouteCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?    @relation("CustomerRouteUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([companyId, customerId, fromId, toId])
+  @@map("customer_routes")
+}

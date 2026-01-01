@@ -1,0 +1,14 @@
+-- AlterTable
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "booking_number" TEXT,
+ADD COLUMN IF NOT EXISTS "vessel_name" TEXT,
+ADD COLUMN IF NOT EXISTS "cro_number" TEXT,
+ADD COLUMN IF NOT EXISTS "customer_contact" TEXT,
+ADD COLUMN IF NOT EXISTS "transporter" TEXT,
+ADD COLUMN IF NOT EXISTS "port_of_loading" TEXT,
+ADD COLUMN IF NOT EXISTS "shipping_line" TEXT,
+ADD COLUMN IF NOT EXISTS "container_number" TEXT,
+ADD COLUMN IF NOT EXISTS "container_size" TEXT,
+ADD COLUMN IF NOT EXISTS "weight_uom" TEXT,
+ADD COLUMN IF NOT EXISTS "tare_weight" DECIMAL(65,30),
+ADD COLUMN IF NOT EXISTS "trailer_number" TEXT;
+

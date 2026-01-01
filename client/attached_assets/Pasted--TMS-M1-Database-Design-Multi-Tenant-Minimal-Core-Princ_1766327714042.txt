@@ -1,0 +1,219 @@
+# TMS – M1 Database Design (Multi-Tenant, Minimal)
+
+## Core Principles
+- **Multi-tenant SaaS**
+- `companies` = tenants (who use the TMS)
+- `customers` = external business entities (do NOT use TMS)
+- Every business record is owned by exactly **one tenant**
+- Users authenticate only under a tenant
+- No Finance, Fuel, Tyre, Warehouse, Maintenance, etc.
+
+---
+
+## Conventions
+- PK → Primary Key
+- FK → Foreign Key
+- Types: INT, BIGINT, STRING, DATE, DATETIME, BOOLEAN, FLOAT
+- All tables are tenant-scoped via `company_id`
+
+---
+
+## 1. Companies (Tenants)
+
+### companies
+- id (PK, INT)
+- name (STRING)
+- address (STRING)
+- phone (STRING)
+- email (STRING)
+- is_active (BOOLEAN)
+- created_at (DATETIME)
+
+> Represents a company that **uses** the TMS
+
+---
+
+## 2. Users (Auth – Mandatory)
+
+### users
+- id (PK, INT)
+- company_id (FK → companies.id)
+- name (STRING)
+- email (STRING, UNIQUE)
+- password_hash (STRING)
+- role (STRING)  
+- is_active (BOOLEAN)
+- last_login_at (DATETIME)
+- created_at (DATETIME)
+
+> Only users authenticate  
+> Customers never log in
+
+---
+
+## 3. Locations (Configurations → Locations)
+
+### locations
+- id (PK, INT)
+- company_id (FK → companies.id)
+- name (STRING)
+- city (STRING)
+- state (STRING)
+- country (STRING)
+- pincode (STRING)
+- is_active (BOOLEAN)
+
+---
+
+## 4. Customers (Sales → Customers)
+
+### customers
+- id (PK, INT)
+- company_id (FK → companies.id)  
+- name (STRING)
+- customer_code (STRING)
+- phone (STRING)
+- email (STRING)
+- billing_address (STRING)
+- is_active (BOOLEAN)
+- created_at (DATETIME)
+
+> Customers belong to a tenant  
+> They are **clients**, not tenants
+
+---
+
+## 5. Contracts (Sales → Contracts)
+
+### contracts
+- id (PK, INT)
+- company_id (FK → companies.id)
+- customer_id (FK → customers.id)
+- contract_number (STRING)
+- start_date (DATE)
+- end_date (DATE)
+- status (STRING)
+- created_at (DATETIME)
+
+---
+
+## 6. Vehicle Types (Configurations → Vehicle Type)
+
+### vehicle_types
+- id (PK, INT)
+- company_id (FK → companies.id)
+- name (STRING)
+- description (STRING)
+- is_active (BOOLEAN)
+
+---
+
+## 7. Vehicles (Fleet → Vehicles)
+
+### vehicles
+- id (PK, INT)
+- company_id (FK → companies.id)
+- registration_number (STRING)
+- vehicle_type_id (FK → vehicle_types.id)
+- status (STRING)
+- is_active (BOOLEAN)
+- created_at (DATETIME)
+
+---
+
+## 8. Drivers (Drivers → Drivers)
+
+### drivers
+- id (PK, INT)
+- company_id (FK → companies.id)
+- name (STRING)
+- phone (STRING)
+- license_number (STRING)
+- license_expiry (DATE)
+- status (STRING)
+- is_active (BOOLEAN)
+- created_at (DATETIME)
+
+---
+
+## 9. Orders / Waybills (Operations → Orders/Waybills)
+
+### orders
+- id (PK, BIGINT)
+- company_id (FK → companies.id)
+- order_number (STRING)
+- customer_id (FK → customers.id)
+- contract_id (FK → contracts.id, NULLABLE)
+- origin_location_id (FK → locations.id)
+- destination_location_id (FK → locations.id)
+- order_date (DATE)
+- status (STRING)
+- created_at (DATETIME)
+
+---
+
+## 10. Trips (Operations → Trips)
+
+### trips
+- id (PK, BIGINT)
+- company_id (FK → companies.id)
+- trip_number (STRING)
+- order_id (FK → orders.id)
+- vehicle_id (FK → vehicles.id)
+- driver_id (FK → drivers.id)
+- planned_start (DATETIME)
+- planned_end (DATETIME)
+- actual_start (DATETIME)
+- actual_end (DATETIME)
+- status (STRING)
+
+---
+
+## Relationship Summary
+
+### Tenant Ownership
+- companies → users
+- companies → locations
+- companies → customers
+- companies → contracts
+- companies → vehicles
+- companies → drivers
+- companies → orders
+- companies → trips
+- companies → vehicle_types
+
+### Business Flow
+- customers → contracts
+- contracts → orders
+- orders → trips
+- trips → vehicles
+- trips → drivers
+- orders → locations (origin, destination)
+
+---
+
+## Auth & Security Notes (M1)
+- All queries are filtered by `company_id`
+- Users cannot access data outside their tenant
+- `company_id` is derived from auth context, never from UI input
+- No cross-tenant shared data in M1
+
+---
+
+## Explicitly Excluded from M1
+❌ Invoices / Receipts  
+❌ Payments / Expenses  
+❌ Fuel / Tyre / Maintenance  
+❌ Warehouse / Inventory  
+❌ POD / AI Planner  
+❌ Credit Terms  
+
+---
+
+## Design Intent
+This schema:
+- Is SaaS-ready
+- Enforces hard tenant isolation
+- Keeps customers external
+- Scales cleanly to M2/M3 without refactors
+

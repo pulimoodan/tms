@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -9,7 +14,11 @@ import { User, UserStatus } from '@prisma/client';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto, userId: string, companyId: string): Promise<Omit<User, 'passwordHash'>> {
+  async create(
+    createUserDto: CreateUserDto,
+    userId: string,
+    companyId: string,
+  ): Promise<Omit<User, 'passwordHash'>> {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
     });
@@ -125,7 +134,12 @@ export class UsersService {
     });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto, userId: string, companyId: string): Promise<Omit<User, 'passwordHash'>> {
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+    userId: string,
+    companyId: string,
+  ): Promise<Omit<User, 'passwordHash'>> {
     const user = await this.findOne(id, companyId);
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {
@@ -154,9 +168,32 @@ export class UsersService {
     };
 
     if (updateUserDto.password) {
+      if (!updateUserDto.currentPassword) {
+        throw new BadRequestException('Current password is required to change password');
+      }
+
+      const userWithPassword = await this.prisma.user.findUnique({
+        where: { id },
+        select: { passwordHash: true },
+      });
+
+      if (!userWithPassword) {
+        throw new NotFoundException(`User with ID '${id}' not found`);
+      }
+
+      const isCurrentPasswordValid = await bcrypt.compare(
+        updateUserDto.currentPassword,
+        userWithPassword.passwordHash,
+      );
+
+      if (!isCurrentPasswordValid) {
+        throw new BadRequestException('Current password is incorrect');
+      }
+
       const saltRounds = 10;
       updateData.passwordHash = await bcrypt.hash(updateUserDto.password, saltRounds);
       delete updateData.password;
+      delete updateData.currentPassword;
     }
 
     const updatedUser = await this.prisma.user.update({
@@ -189,4 +226,3 @@ export class UsersService {
     });
   }
 }
-

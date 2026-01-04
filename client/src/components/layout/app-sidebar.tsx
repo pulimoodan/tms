@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Link, useLocation } from 'wouter';
-import { ArrowRight01Icon, Logout01Icon } from '@hugeicons/core-free-icons';
+import { ArrowRight01Icon, Logout01Icon, UserIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useAuth } from '@/context/auth-context';
 import { IconRenderer } from '@/lib/icons';
@@ -217,6 +217,16 @@ export function AppSidebar() {
             className="min-w-56 rounded-lg bg-sidebar p-2 text-sidebar-foreground border-sidebar-border"
           >
             <DropdownMenuLabel className="text-xs text-muted-foreground">Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              asChild
+              className="focus:bg-sidebar-accent focus:text-sidebar-accent-foreground"
+            >
+              <Link href="/account/profile" className="flex items-center gap-2 cursor-pointer">
+                <HugeiconsIcon icon={UserIcon} className="h-4 w-4" />
+                <span>Profile</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={logout}

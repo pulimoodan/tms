@@ -38,6 +38,7 @@ import RoleFormPage from "@/pages/admin/role-form-page";
 import UsersPage from "@/pages/admin/users";
 import UserFormPage from "@/pages/admin/user-form-page";
 import CompanyPage from "@/pages/admin/company";
+import ProfilePage from "@/pages/account/profile";
 
 // Protected Route Component
 function ProtectedRoute({ component: Component, ...rest }: any) {
@@ -216,6 +217,11 @@ function Router() {
         </Route>
         <Route path="/admin/users/:id/edit">
             <ProtectedRoute component={UserFormPage} />
+        </Route>
+        
+        {/* Account Routes */}
+        <Route path="/account/profile">
+            <ProtectedRoute component={ProfilePage} />
         </Route>
         
         {/* Fallback */}

@@ -6,9 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Starting seed...');
 
-  let company = await prisma.company.findFirst({
-    where: { crNo: 'CR1234567890' },
-  });
+  let company = await prisma.company.findFirst();
 
   if (!company) {
     company = await prisma.company.create({

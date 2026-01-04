@@ -61,14 +61,15 @@ export function MultiStepForm({
               <div className="flex items-center w-full justify-center mb-3 relative">
                 {index > 0 && (
                   <div
-                    className={`absolute left-0 top-1/2 w-1/2 h-[2px] -translate-y-1/2 ${
+                    className={`absolute left-0 top-1/2 h-[2px] -translate-y-1/2 z-0 ${
                       currentStep > index ? 'bg-primary' : 'bg-muted-foreground/30'
                     }`}
+                    style={{ width: 'calc(50% - 24px)' }}
                   />
                 )}
 
                 <div
-                  className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all z-10 relative ${
+                  className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all z-20 relative ${
                     isActive
                       ? 'border-primary bg-primary/10 dark:bg-primary/20'
                       : isCompleted
@@ -82,7 +83,7 @@ export function MultiStepForm({
                       isActive
                         ? 'text-primary'
                         : isCompleted
-                          ? 'text-white'
+                          ? 'text-primary-foreground'
                           : 'text-muted-foreground'
                     }`}
                   />
@@ -90,9 +91,10 @@ export function MultiStepForm({
 
                 {index < steps.length - 1 && (
                   <div
-                    className={`absolute right-0 top-1/2 w-1/2 h-[2px] -translate-y-1/2 ${
+                    className={`absolute right-0 top-1/2 h-[2px] -translate-y-1/2 z-0 ${
                       isCompleted ? 'bg-primary' : 'bg-muted-foreground/30'
                     }`}
+                    style={{ width: 'calc(50% - 24px)' }}
                   />
                 )}
               </div>

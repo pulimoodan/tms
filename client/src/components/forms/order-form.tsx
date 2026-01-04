@@ -59,13 +59,13 @@ const orderFormSchema = z.object({
   contractId: z.string().optional(),
   fromId: z.string().min(1, 'From location is required'),
   toId: z.string().min(1, 'To location is required'),
-  weight: z.string().optional(),
-  volume: z.string().optional(),
-  value: z.string().optional(),
+  weight: z.string().min(1, 'Weight is required'),
+  volume: z.string().min(1, 'Volume is required'),
+  value: z.string().min(1, 'Value is required'),
   vehicleId: z.string().min(1, 'Vehicle is required'),
-  attachmentId: z.string().optional(),
+  attachmentId: z.string().min(1, 'Attachment is required'),
   driverId: z.string().min(1, 'Driver is required'),
-  cargoDescription: z.string().optional(),
+  cargoDescription: z.string().min(1, 'Cargo description is required'),
   startKms: z.string().min(1, 'Start KMs is required'),
   etaDate: z.string().optional(),
   etaTime: z.string().optional(),
@@ -114,14 +114,14 @@ const STEPS: Step[] = [
     title: 'Cargo Details',
     icon: PackageIcon,
     description: 'Cargo information and tracking',
-    fields: ['weight', 'volume', 'cargoDescription'],
+    fields: ['weight', 'volume', 'value', 'cargoDescription'],
   },
   {
     number: 3,
     title: 'Assignment',
     icon: ShippingTruck02Icon,
     description: 'Assign driver, vehicle, and status',
-    fields: ['vehicleId', 'driverId', 'startKms'],
+    fields: ['vehicleId', 'attachmentId', 'driverId', 'startKms'],
   },
   {
     number: 4,
@@ -374,15 +374,12 @@ export function OrderForm({
         fromId: values.fromId,
         toId: values.toId,
         contractId: values.contractId && values.contractId.trim() ? values.contractId : undefined,
-        weight: values.weight ? parseFloat(values.weight) : undefined,
-        volume: values.volume ? parseFloat(values.volume) : undefined,
-        value: values.value ? parseFloat(values.value) : undefined,
+        weight: parseFloat(values.weight),
+        volume: parseFloat(values.volume),
+        value: parseFloat(values.value),
         vehicleId: values.vehicleId,
         driverId: values.driverId,
-        cargoDescription:
-          values.cargoDescription && values.cargoDescription.trim()
-            ? values.cargoDescription
-            : undefined,
+        cargoDescription: values.cargoDescription.trim(),
         startKms: values.startKms ? parseInt(values.startKms) : undefined,
         eta:
           values.etaDate && values.etaTime
@@ -439,9 +436,7 @@ export function OrderForm({
           values.trailerNumber && values.trailerNumber.trim() ? values.trailerNumber : undefined,
       };
 
-      if (values.attachmentId && values.attachmentId.trim()) {
-        payload.attachmentId = values.attachmentId.trim();
-      }
+      payload.attachmentId = values.attachmentId.trim();
 
       if ('status' in payload) {
         delete payload.status;
@@ -721,11 +716,10 @@ export function OrderForm({
                 name="cargoDescription"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cargo Description</FormLabel>
+                    <FormLabel>Cargo Description *</FormLabel>
                     <FormControl>
                       <Textarea placeholder="Describe the cargo" {...field} />
                     </FormControl>
-                    <FormDescription>Optional</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -737,7 +731,7 @@ export function OrderForm({
                   name="weight"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Weight (kg)</FormLabel>
+                      <FormLabel>Weight (kg) *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -747,7 +741,6 @@ export function OrderForm({
                           data-testid="input-weight"
                         />
                       </FormControl>
-                      <FormDescription>Optional</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -757,7 +750,7 @@ export function OrderForm({
                   name="volume"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Volume (m³)</FormLabel>
+                      <FormLabel>Volume (m³) *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -767,7 +760,6 @@ export function OrderForm({
                           data-testid="input-volume"
                         />
                       </FormControl>
-                      <FormDescription>Optional</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -777,7 +769,7 @@ export function OrderForm({
                   name="value"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Value (SAR)</FormLabel>
+                      <FormLabel>Value (SAR) *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -787,7 +779,6 @@ export function OrderForm({
                           data-testid="input-value"
                         />
                       </FormControl>
-                      <FormDescription>Optional</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -900,10 +891,10 @@ export function OrderForm({
                 control={form.control}
                 name="attachmentId"
                 render={({ field }) => {
-                  const selectedAttachment = vehicles.find((v: any) => v.id === field.value);
+                  const selectedAttachment = vehicles.find((v: any) => v.id === field.value && v.type === 'Attachment');
                   return (
                     <FormItem>
-                      <FormLabel>Attachment</FormLabel>
+                      <FormLabel>Attachment *</FormLabel>
                       <div className="flex gap-2">
                         <Popover open={attachmentOpen} onOpenChange={setAttachmentOpen}>
                           <PopoverTrigger asChild>
@@ -916,7 +907,7 @@ export function OrderForm({
                               >
                                 {selectedAttachment
                                   ? `${selectedAttachment.name || 'Unnamed'} - ${selectedAttachment.chassisNo || 'N/A'}`
-                                  : 'Select attachment (optional)'}
+                                  : 'Select attachment'}
                                 <HugeiconsIcon
                                   icon={ShippingTruck02Icon}
                                   className="ml-2 h-4 w-4 shrink-0 opacity-50"
@@ -973,7 +964,6 @@ export function OrderForm({
                           </Button>
                         )}
                       </div>
-                      <FormDescription>Optional</FormDescription>
                       <FormMessage />
                     </FormItem>
                   );

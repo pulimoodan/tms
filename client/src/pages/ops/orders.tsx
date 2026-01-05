@@ -33,6 +33,7 @@ import {
   Calendar01Icon,
   Search01Icon,
   DeliveryBox01Icon,
+  File01Icon,
 } from '@hugeicons/core-free-icons';
 import { PageTitle } from '@/components/ui/page-title';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -447,6 +448,10 @@ export default function OrdersPage() {
           />
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setLocation('/ops/orders/report')}>
+            <HugeiconsIcon icon={File01Icon} className="mr-2 h-4 w-4" />
+            Report
+          </Button>
           <Button variant="default" onClick={() => setLocation('/ops/orders/new')}>
             <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
             New Order

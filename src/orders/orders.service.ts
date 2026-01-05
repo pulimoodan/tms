@@ -310,6 +310,15 @@ export class OrdersService {
             select: {
               id: true,
               plateNumber: true,
+              doorNo: true,
+            },
+          },
+          attachment: {
+            select: {
+              id: true,
+              name: true,
+              plateNumber: true,
+              doorNo: true,
             },
           },
           driver: {
@@ -317,6 +326,8 @@ export class OrdersService {
               id: true,
               name: true,
               mobile: true,
+              badgeNo: true,
+              iqamaNumber: true,
             },
           },
         },

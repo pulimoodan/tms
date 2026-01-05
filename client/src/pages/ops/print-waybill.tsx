@@ -202,7 +202,7 @@ export default function PrintWaybillPage() {
 
         <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
           <tbody>
-            {order.contract?.contractNumber && (
+        {order.contract?.contractNumber && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold w-32">
                   Agreement NO:
@@ -299,20 +299,20 @@ export default function PrintWaybillPage() {
                 <td className="border border-gray-400 px-4 py-2">{order.requestedTime || ''}</td>
               </tr>
             )}
-            {order.eta && (
+                {order.eta && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   ETA:
                 </td>
                 <td className="border border-gray-400 px-4 py-2" colSpan={3}>
-                  {(() => {
-                    const dt = formatDateTime(order.eta);
+                    {(() => {
+                      const dt = formatDateTime(order.eta);
                     return typeof dt === 'string' ? formatDate(order.eta) : `${dt.date} ${dt.time}`;
-                  })()}
+                    })()}
                 </td>
               </tr>
-            )}
-            {order.vesselName && (
+                )}
+                {order.vesselName && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Vessel Name:
@@ -321,8 +321,8 @@ export default function PrintWaybillPage() {
                   {order.vesselName}
                 </td>
               </tr>
-            )}
-            {order.croNumber && (
+                )}
+                {order.croNumber && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   CRO Number:
@@ -331,8 +331,8 @@ export default function PrintWaybillPage() {
                   {order.croNumber}
                 </td>
               </tr>
-            )}
-            {order.customerContact && (
+                )}
+                {order.customerContact && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Customer Contact:
@@ -341,8 +341,8 @@ export default function PrintWaybillPage() {
                   {order.customerContact}
                 </td>
               </tr>
-            )}
-            {order.transporter && (
+                )}
+                {order.transporter && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Transporter:
@@ -351,8 +351,8 @@ export default function PrintWaybillPage() {
                   {order.transporter}
                 </td>
               </tr>
-            )}
-            {order.portOfLoading && (
+                )}
+                {order.portOfLoading && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Port Of Loading:
@@ -361,8 +361,8 @@ export default function PrintWaybillPage() {
                   {order.portOfLoading}
                 </td>
               </tr>
-            )}
-            {order.shippingLine && (
+                )}
+                {order.shippingLine && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Shipping Line:
@@ -371,7 +371,7 @@ export default function PrintWaybillPage() {
                   {order.shippingLine}
                 </td>
               </tr>
-            )}
+                )}
           </tbody>
         </table>
 
@@ -387,8 +387,8 @@ export default function PrintWaybillPage() {
             </tr>
           </thead>
           <tbody>
-            {order.driver && (
-              <>
+                {order.driver && (
+                  <>
                 <tr>
                   <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold w-32">
                     Driver ID:
@@ -401,7 +401,7 @@ export default function PrintWaybillPage() {
                   </td>
                   <td className="border border-gray-400 px-4 py-2">{order.driver.name}</td>
                 </tr>
-                {order.driver.mobile && (
+                    {order.driver.mobile && (
                   <tr>
                     <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                       Driver Mobile:
@@ -414,17 +414,17 @@ export default function PrintWaybillPage() {
                       {order.trailerNumber || order.attachment?.name || ''}
                     </td>
                   </tr>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-            {order.vehicle && (
+                {order.vehicle && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Truck:
                 </td>
                 <td className="border border-gray-400 px-4 py-2">
                   {order.vehicle.plateNumber}
-                  {order.vehicle.chassisNo && ` (Chassis: ${order.vehicle.chassisNo})`}
+                      {order.vehicle.chassisNo && ` (Chassis: ${order.vehicle.chassisNo})`}
                 </td>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Plate Number:
@@ -433,7 +433,7 @@ export default function PrintWaybillPage() {
                   {order.vehicle.doorNo || order.vehicle.plateNumber || ''}
                 </td>
               </tr>
-            )}
+                )}
             {order.attachment && !order.driver?.mobile && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
@@ -441,10 +441,10 @@ export default function PrintWaybillPage() {
                 </td>
                 <td className="border border-gray-400 px-4 py-2" colSpan={3}>
                   {order.attachment.name || ''}
-                  {order.attachment.chassisNo && ` (Chassis: ${order.attachment.chassisNo})`}
+                      {order.attachment.chassisNo && ` (Chassis: ${order.attachment.chassisNo})`}
                 </td>
               </tr>
-            )}
+                )}
             {(order.startKms !== null && order.startKms !== undefined) ||
             (order.kmOut !== null && order.kmOut !== undefined) ||
             (order.kmIn !== null && order.kmIn !== undefined) ||
@@ -468,7 +468,7 @@ export default function PrintWaybillPage() {
                 </td>
               </tr>
             ) : null}
-            {order.runKm !== null && order.runKm !== undefined && (
+                {order.runKm !== null && order.runKm !== undefined && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Run Km:
@@ -482,86 +482,86 @@ export default function PrintWaybillPage() {
         </table>
 
         <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
-          <thead>
-            <tr>
+              <thead>
+                <tr>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                Customer Details
-              </th>
+                    Customer Details
+                  </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                Cargo Description
-              </th>
+                    Cargo Description
+                  </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                Container Number
-              </th>
+                    Container Number
+                  </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                Container Size
-              </th>
+                    Container Size
+                  </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                Weight UOM
-              </th>
+                    Weight UOM
+                  </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                Weight
-              </th>
+                    Weight
+                  </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                Value (SAR)
-              </th>
+                    Value (SAR)
+                  </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                SI/ No
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
+                    SI/ No
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
               <td className="border border-gray-400 px-4 py-2">
                 {order.customer?.name || ''}
-                {order.customerContact && (
+                    {order.customerContact && (
                   <div className="text-xs text-gray-600">{order.customerContact}</div>
-                )}
-              </td>
+                    )}
+                  </td>
               <td className="border border-gray-400 px-4 py-2">{order.cargoDescription || ''}</td>
               <td className="border border-gray-400 px-4 py-2">{order.containerNumber || ''}</td>
               <td className="border border-gray-400 px-4 py-2">{order.containerSize || ''}</td>
               <td className="border border-gray-400 px-4 py-2">{order.weightUom || 'TON'}</td>
               <td className="border border-gray-400 px-4 py-2">
-                {order.weight
-                  ? order.weightUom === 'KG'
-                    ? Number(order.weight)
-                    : Number(order.weight) / 1000
+                    {order.weight
+                      ? order.weightUom === 'KG'
+                        ? Number(order.weight)
+                        : Number(order.weight) / 1000
                   : ''}
-                {order.tareWeight && (
+                    {order.tareWeight && (
                   <div className="text-xs text-gray-600">TARE WT: {Number(order.tareWeight)}</div>
-                )}
-              </td>
+                    )}
+                  </td>
               <td className="border border-gray-400 px-4 py-2">
                 {order.value ? Number(order.value).toLocaleString() : ''}
-              </td>
+                  </td>
               <td className="border border-gray-400 px-4 py-2">1</td>
-            </tr>
-          </tbody>
-        </table>
+                </tr>
+              </tbody>
+            </table>
 
         <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
-          <thead>
-            <tr>
+                <thead>
+                  <tr>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left w-16">
                 Activities
-              </th>
+                    </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                 Purpose
-              </th>
+                    </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                 Delivery Location
-              </th>
+                    </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                 Activity Date
-              </th>
+                    </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                 Activity Time
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
               <td className="border border-gray-400 px-3 py-1.5 text-center">1</td>
               <td className="border border-gray-400 px-4 py-2">Trip Begin</td>
               <td className="border border-gray-400 px-4 py-2">Loading</td>
@@ -571,9 +571,9 @@ export default function PrintWaybillPage() {
                   ? formatDate(order.requestedDate)
                   : formatDate(order.createdAt)}{' '}
                 {order.requestedTime || ''}
-              </td>
-            </tr>
-            <tr>
+                    </td>
+                  </tr>
+                  <tr>
               <td className="border border-gray-400 px-3 py-1.5 text-center">2</td>
               <td className="border border-gray-400 px-4 py-2">Trip End</td>
               <td className="border border-gray-400 px-4 py-2">Un Loading</td>
@@ -587,10 +587,10 @@ export default function PrintWaybillPage() {
                         : `${dt.date} ${dt.time}`;
                     })()
                   : ''}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
         {order.remarks && (
           <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
@@ -607,22 +607,22 @@ export default function PrintWaybillPage() {
 
         <div className="border-t-2 border-gray-900 pt-1 print:pt-0.5 print:border-t-2 print:border-black mt-1 print:mt-0.5 print-break-avoid">
           <table className="w-full text-xs print:text-xs border-collapse border border-gray-400">
-            <tbody>
-              <tr>
+                <tbody>
+                  <tr>
                 <td className="border border-gray-400 px-3 py-1.5" colSpan={2}>
-                  In my presence and knowledge above mentioned seal were opened and found.
-                </td>
-              </tr>
-              <tr>
+                      In my presence and knowledge above mentioned seal were opened and found.
+                    </td>
+                  </tr>
+                  <tr>
                 <td className="border border-gray-400 px-3 py-1.5" colSpan={2}>
-                  I received the entire cargo in good condition and I have no claim.
-                </td>
-              </tr>
-              <tr>
+                      I received the entire cargo in good condition and I have no claim.
+                    </td>
+                  </tr>
+                  <tr>
                 <td className="border border-gray-400 px-3 py-1.5" colSpan={2}>
-                  I received the entire cargo but I have following remarks.
-                </td>
-              </tr>
+                      I received the entire cargo but I have following remarks.
+                    </td>
+                  </tr>
             </tbody>
           </table>
           <div className="grid grid-cols-3 gap-0.5 print:gap-0 mt-0.5 print:mt-0">

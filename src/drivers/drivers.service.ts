@@ -37,6 +37,8 @@ export class DriversService {
           : null,
         mobile: createDriverDto.mobile || null,
         preferredLanguage: createDriverDto.preferredLanguage || null,
+        ownershipType: createDriverDto.ownershipType || 'CompanyOwned',
+        outsourcedCompanyName: createDriverDto.outsourcedCompanyName || null,
         status: createDriverDto.status || 'Active',
         createdById: userId,
         updatedById: userId,
@@ -138,6 +140,12 @@ export class DriversService {
     }
     if (updateDriverDto.preferredLanguage !== undefined) {
       updateData.preferredLanguage = updateDriverDto.preferredLanguage || null;
+    }
+    if (updateDriverDto.ownershipType !== undefined) {
+      updateData.ownershipType = updateDriverDto.ownershipType;
+    }
+    if (updateDriverDto.outsourcedCompanyName !== undefined) {
+      updateData.outsourcedCompanyName = updateDriverDto.outsourcedCompanyName || null;
     }
     if (updateDriverDto.status !== undefined) {
       updateData.status = updateDriverDto.status;

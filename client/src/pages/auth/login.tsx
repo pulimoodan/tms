@@ -102,7 +102,7 @@ export default function LoginPage() {
               />
             </div>
             <h1 className="text-4xl font-bold mb-4">Manage your fleet with precision and ease.</h1>
-            <p className="text-slate-300 text-lg">
+            <p className="text-blue-900 text-lg">
               Complete logistics solution for tracking, management, and optimization.
             </p>
           </div>

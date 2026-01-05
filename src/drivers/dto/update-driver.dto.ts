@@ -8,7 +8,7 @@ import {
   IsDateString,
   IsOptional,
 } from 'class-validator';
-import { DriverStatus, DriverPosition } from '@prisma/client';
+import { DriverStatus, DriverPosition, DriverOwnershipType } from '@prisma/client';
 
 export class UpdateDriverDto {
   @ApiPropertyOptional({ example: '7706', description: 'Badge number' })
@@ -83,4 +83,22 @@ export class UpdateDriverDto {
   @IsEnum(DriverStatus)
   @IsOptional()
   status?: DriverStatus;
+
+  @ApiPropertyOptional({
+    example: 'CompanyOwned',
+    description: 'Driver ownership type',
+    enum: DriverOwnershipType,
+  })
+  @IsEnum(DriverOwnershipType)
+  @IsOptional()
+  ownershipType?: DriverOwnershipType;
+
+  @ApiPropertyOptional({
+    example: 'ABC Transport Company',
+    description: 'Outsourced company name (if driver is outsourced)',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  outsourcedCompanyName?: string;
 }

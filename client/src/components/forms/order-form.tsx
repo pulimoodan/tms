@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePicker } from '@/components/ui/date-picker';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import {
   Select,
   SelectContent,
@@ -41,6 +43,7 @@ import {
   File01Icon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
+import { Badge } from '@/components/ui/badge';
 import {
   fetchCustomers,
   fetchContracts,
@@ -839,20 +842,23 @@ export function OrderForm({
                                         >
                                           <div className="flex flex-col">
                                             <span>
-                                              {vehicle.name || 'Unnamed'} - {vehicle.plateNumber || 'N/A'}
+                                              {vehicle.name || 'Unnamed'} -{' '}
+                                              {vehicle.plateNumber || 'N/A'}
                                             </span>
                                             {(vehicle.doorNo || vehicle.asset) && (
                                               <span className="text-xs text-muted-foreground">
-                                                {[vehicle.doorNo, vehicle.asset].filter(Boolean).join(' / ')}
+                                                {[vehicle.doorNo, vehicle.asset]
+                                                  .filter(Boolean)
+                                                  .join(' / ')}
                                               </span>
                                             )}
                                           </div>
                                         </CommandItem>
                                       ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
                           </Popover>
                           {field.value && (
                             <Button
@@ -891,7 +897,9 @@ export function OrderForm({
                 control={form.control}
                 name="attachmentId"
                 render={({ field }) => {
-                  const selectedAttachment = vehicles.find((v: any) => v.id === field.value && v.type === 'Attachment');
+                  const selectedAttachment = vehicles.find(
+                    (v: any) => v.id === field.value && v.type === 'Attachment',
+                  );
                   return (
                     <FormItem>
                       <FormLabel>Attachment *</FormLabel>
@@ -939,7 +947,9 @@ export function OrderForm({
                                           </span>
                                           {(attachment.doorNo || attachment.asset) && (
                                             <span className="text-xs text-muted-foreground">
-                                              {[attachment.doorNo, attachment.asset].filter(Boolean).join(' / ')}
+                                              {[attachment.doorNo, attachment.asset]
+                                                .filter(Boolean)
+                                                .join(' / ')}
                                             </span>
                                           )}
                                         </div>
@@ -987,9 +997,25 @@ export function OrderForm({
                                 className="flex-1 justify-between"
                                 data-testid="select-driver"
                               >
-                                {selectedDriver
-                                  ? `${selectedDriver.name}${selectedDriver.mobile ? ` (${selectedDriver.mobile})` : ''}`
-                                  : 'Select driver'}
+                                <span className="flex items-center gap-2 flex-1 justify-start">
+                                  {selectedDriver ? (
+                                    <>
+                                      <span>{selectedDriver.name}</span>
+                                      {selectedDriver.ownershipType === 'Outsourced' && (
+                                        <Badge variant="destructive" className="text-xs">
+                                          Outsourced
+                                        </Badge>
+                                      )}
+                                      {selectedDriver.mobile && (
+                                        <span className="text-muted-foreground text-sm">
+                                          ({selectedDriver.mobile})
+                                        </span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    'Select driver'
+                                  )}
+                                </span>
                                 <HugeiconsIcon
                                   icon={IdentityCardIcon}
                                   className="ml-2 h-4 w-4 shrink-0 opacity-50"
@@ -1012,13 +1038,26 @@ export function OrderForm({
                                         setDriverOpen(false);
                                       }}
                                     >
-                                      <div className="flex flex-col">
-                                        <span>{driver.name}</span>
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                          <span>{driver.name}</span>
+                                          {driver.ownershipType === 'Outsourced' && (
+                                            <Badge variant="destructive" className="text-xs">
+                                              Outsourced
+                                            </Badge>
+                                          )}
+                                        </div>
                                         {driver.mobile && (
                                           <span className="text-xs text-muted-foreground">
                                             {driver.mobile}
                                           </span>
                                         )}
+                                        {driver.ownershipType === 'Outsourced' &&
+                                          driver.outsourcedCompanyName && (
+                                            <span className="text-xs text-muted-foreground">
+                                              {driver.outsourcedCompanyName}
+                                            </span>
+                                          )}
                                       </div>
                                     </CommandItem>
                                   ))}
@@ -1053,70 +1092,60 @@ export function OrderForm({
             <div className="space-y-6">
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-4">Requested Details</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="requestedDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Requested Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormDescription>Optional</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="requestedTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Requested Time</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormDescription>Optional</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="requestedDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Requested Date & Time</FormLabel>
+                      <FormControl>
+                        <DateTimePicker
+                          dateValue={field.value}
+                          timeValue={form.watch('requestedTime')}
+                          onDateChange={(value) => {
+                            field.onChange(value);
+                          }}
+                          onTimeChange={(value) => {
+                            form.setValue('requestedTime', value);
+                          }}
+                          datePlaceholder="Pick a date"
+                          timePlaceholder="HH:mm"
+                        />
+                      </FormControl>
+                      <FormDescription>Optional</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-4">ETA (Estimated Time of Arrival)</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="etaDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ETA Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormDescription>Optional</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="etaTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ETA Time</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormDescription>Optional</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="etaDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ETA Date & Time</FormLabel>
+                      <FormControl>
+                        <DateTimePicker
+                          dateValue={field.value}
+                          timeValue={form.watch('etaTime')}
+                          onDateChange={(value) => {
+                            field.onChange(value);
+                          }}
+                          onTimeChange={(value) => {
+                            form.setValue('etaTime', value);
+                          }}
+                          datePlaceholder="Pick a date"
+                          timePlaceholder="HH:mm"
+                        />
+                      </FormControl>
+                      <FormDescription>Optional</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <FormField

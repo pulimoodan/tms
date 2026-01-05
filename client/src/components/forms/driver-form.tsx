@@ -36,7 +36,17 @@ const driverFormSchema = z.object({
   driverCardExpiry: z.string().optional(),
   mobile: z.string().max(20).optional(),
   preferredLanguage: z.string().optional(),
+  ownershipType: z.enum(['CompanyOwned', 'Outsourced']).optional(),
+  outsourcedCompanyName: z.string().max(200).optional(),
   status: z.enum(['Active', 'OnTrip', 'Vacation', 'Inactive']).optional(),
+}).refine((data) => {
+  if (data.ownershipType === 'Outsourced' && !data.outsourcedCompanyName) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Outsourced company name is required when ownership type is Outsourced',
+  path: ['outsourcedCompanyName'],
 });
 
 type DriverFormValues = z.infer<typeof driverFormSchema>;
@@ -108,6 +118,8 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
       driverCardExpiry: '',
       mobile: '',
       preferredLanguage: '',
+      ownershipType: 'CompanyOwned',
+      outsourcedCompanyName: '',
       status: 'Active',
     },
   });
@@ -152,6 +164,8 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
         driverCardExpiry: values.driverCardExpiry || undefined,
         mobile: values.mobile || undefined,
         preferredLanguage: values.preferredLanguage || undefined,
+        ownershipType: values.ownershipType || 'CompanyOwned',
+        outsourcedCompanyName: values.outsourcedCompanyName || undefined,
         status: values.status || 'Active',
       };
 
@@ -375,6 +389,60 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
                   <FormMessage />
                 </FormItem>
               )}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="ownershipType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ownership Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || 'CompanyOwned'}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-ownership-type">
+                        <SelectValue placeholder="Select ownership type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="CompanyOwned">Company Owned</SelectItem>
+                      <SelectItem value="Outsourced">Outsourced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="outsourcedCompanyName"
+              render={({ field }) => {
+                const ownershipType = form.watch('ownershipType');
+                return (
+                  <FormItem>
+                    <FormLabel>
+                      Outsourced Company Name
+                      {ownershipType === 'Outsourced' && <span className="text-destructive"> *</span>}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., MASADAAR HUMAN RESOURCE SERVICES COMPANY"
+                        {...field}
+                        disabled={ownershipType !== 'Outsourced'}
+                        data-testid="input-outsourced-company"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {ownershipType === 'Outsourced'
+                        ? 'Required for outsourced drivers'
+                        : 'Only required for outsourced drivers'}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
           </div>
 

@@ -61,6 +61,11 @@ enum DriverPosition {
   BusDriver
 }
 
+enum DriverOwnershipType {
+  CompanyOwned
+  Outsourced
+}
+
 enum VehicleStatus {
   Active
   InMaintenance
@@ -251,22 +256,24 @@ model Location {
 }
 
 model Driver {
-  id                String          @id @default(uuid())
-  companyId         String          @map("company_id")
-  badgeNo           String?         @map("badge_no")
-  name              String
-  iqamaNumber       String          @map("iqama_number")
-  position          DriverPosition?
-  sponsorship       String?
-  nationality       String
-  driverCardExpiry  DateTime?       @map("driver_card_expiry")
-  mobile            String?
-  preferredLanguage String?         @map("preferred_language")
-  status            DriverStatus    @default(Active)
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
-  createdById       String?         @map("created_by_id")
-  updatedById       String?         @map("updated_by_id")
+  id                  String              @id @default(uuid())
+  companyId           String              @map("company_id")
+  badgeNo             String?             @map("badge_no")
+  name                String
+  iqamaNumber         String              @map("iqama_number")
+  position            DriverPosition?
+  sponsorship         String?
+  nationality         String
+  driverCardExpiry    DateTime?           @map("driver_card_expiry")
+  mobile              String?
+  preferredLanguage   String?             @map("preferred_language")
+  ownershipType       DriverOwnershipType @default(CompanyOwned) @map("ownership_type")
+  outsourcedCompanyName String?           @map("outsourced_company_name")
+  status              DriverStatus        @default(Active)
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+  createdById         String?             @map("created_by_id")
+  updatedById         String?             @map("updated_by_id")
 
   company   Company @relation(fields: [companyId], references: [id])
   createdBy User?   @relation("DriverCreatedBy", fields: [createdById], references: [id])

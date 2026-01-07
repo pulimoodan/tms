@@ -67,6 +67,7 @@ const VEHICLE_CATEGORIES = [
   'LowBedTrailer',
   'DryBox',
   'CurtainSide',
+  'Reefer',
   'HydraulicWinchWithBox',
   'Forklift',
   'BackhoLoader',
@@ -89,6 +90,7 @@ const getCategoryLabel = (category: string) => {
     LowBedTrailer: 'Low Bed Trailer',
     DryBox: 'Dry Box',
     CurtainSide: 'Curtain Side',
+    Reefer: 'Reefer',
     HydraulicWinchWithBox: 'Hydraulic Winch With Box',
     Forklift: 'Forklift',
     BackhoLoader: 'Backho Loader',
@@ -192,9 +194,11 @@ export function ContractForm({
     async function loadData() {
       setIsLoading(true);
       try {
-        const [customersData, creditTermsData, locationsData] = await Promise.all(
-          [fetchCustomers(), fetchCreditTerms(), fetchLocations()],
-        );
+        const [customersData, creditTermsData, locationsData] = await Promise.all([
+          fetchCustomers(),
+          fetchCreditTerms(),
+          fetchLocations(),
+        ]);
         setCustomers(customersData);
         setCreditTerms(creditTermsData);
         setLocations(locationsData);
@@ -592,7 +596,9 @@ export function ContractForm({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append({ fromId: '', toId: '', vehicleCategory: 'TractorHead', price: '' })}
+                  onClick={() =>
+                    append({ fromId: '', toId: '', vehicleCategory: 'TractorHead', price: '' })
+                  }
                   data-testid="button-add-route"
                 >
                   <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />

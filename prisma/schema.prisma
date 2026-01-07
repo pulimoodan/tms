@@ -42,6 +42,7 @@ enum VehicleCategory {
   LowBedTrailer
   DryBox
   CurtainSide
+  Reefer
   HydraulicWinchWithBox
   Forklift
   BackhoLoader

@@ -116,6 +116,24 @@ export class OrdersService {
       }
     }
 
+    if (createOrderDto.accessoryIds && createOrderDto.accessoryIds.length > 0) {
+      const accessories = await this.prisma.vehicle.findMany({
+        where: {
+          id: { in: createOrderDto.accessoryIds },
+          companyId,
+          type: 'Accessory',
+        },
+      });
+
+      if (accessories.length !== createOrderDto.accessoryIds.length) {
+        const foundIds = accessories.map((a) => a.id);
+        const missingIds = createOrderDto.accessoryIds.filter((id) => !foundIds.includes(id));
+        throw new NotFoundException(
+          `One or more accessories not found or not of type Accessory: ${missingIds.join(', ')}`,
+        );
+      }
+    }
+
     const orderNo = await this.generateOrderNumber(companyId);
 
     return this.prisma.order.create({
@@ -220,6 +238,12 @@ export class OrdersService {
           createOrderDto.trailerNumber && createOrderDto.trailerNumber.trim()
             ? createOrderDto.trailerNumber
             : null,
+        accessories:
+          createOrderDto.accessoryIds && createOrderDto.accessoryIds.length > 0
+            ? {
+                connect: createOrderDto.accessoryIds.map((id) => ({ id })),
+              }
+            : undefined,
         createdById: userId,
         updatedById: userId,
       },
@@ -258,6 +282,15 @@ export class OrdersService {
             plateNumber: true,
             plateNumberArabic: true,
             chassisNo: true,
+          },
+        },
+        accessories: {
+          select: {
+            id: true,
+            name: true,
+            plateNumber: true,
+            plateNumberArabic: true,
+            doorNo: true,
           },
         },
         driver: {
@@ -318,6 +351,15 @@ export class OrdersService {
               id: true,
               name: true,
               plateNumber: true,
+              doorNo: true,
+            },
+          },
+          accessories: {
+            select: {
+              id: true,
+              name: true,
+              plateNumber: true,
+              plateNumberArabic: true,
               doorNo: true,
             },
           },
@@ -447,6 +489,20 @@ export class OrdersService {
                 },
               }
             : false,
+          accessories: {
+            select: {
+              id: true,
+              name: true,
+              plateNumber: true,
+              plateNumberArabic: true,
+              doorNo: true,
+              type: true,
+              category: true,
+              make: true,
+              model: true,
+              chassisNo: true,
+            },
+          },
           driver: orderBase.driverId
             ? {
                 select: {
@@ -564,6 +620,26 @@ export class OrdersService {
 
         if (!driver) {
           throw new NotFoundException(`Driver with ID '${updateOrderDto.driverId}' not found`);
+        }
+      }
+    }
+
+    if (updateOrderDto.accessoryIds !== undefined) {
+      if (updateOrderDto.accessoryIds && updateOrderDto.accessoryIds.length > 0) {
+        const accessories = await this.prisma.vehicle.findMany({
+          where: {
+            id: { in: updateOrderDto.accessoryIds },
+            companyId,
+            type: 'Accessory',
+          },
+        });
+
+        if (accessories.length !== updateOrderDto.accessoryIds.length) {
+          const foundIds = accessories.map((a) => a.id);
+          const missingIds = updateOrderDto.accessoryIds.filter((id) => !foundIds.includes(id));
+          throw new NotFoundException(
+            `One or more accessories not found or not of type Accessory: ${missingIds.join(', ')}`,
+          );
         }
       }
     }
@@ -771,6 +847,14 @@ export class OrdersService {
           ? updateOrderDto.trailerNumber
           : null;
     }
+    if (updateOrderDto.accessoryIds !== undefined) {
+      updateData.accessories = {
+        set:
+          updateOrderDto.accessoryIds.length > 0
+            ? updateOrderDto.accessoryIds.map((id) => ({ id }))
+            : [],
+      };
+    }
 
     return this.prisma.order.update({
       where: { id },
@@ -812,6 +896,17 @@ export class OrdersService {
           select: {
             id: true,
             name: true,
+          },
+        },
+        accessories: {
+          select: {
+            id: true,
+            name: true,
+            plateNumber: true,
+            plateNumberArabic: true,
+            doorNo: true,
+            type: true,
+            category: true,
           },
         },
       },

@@ -380,6 +380,51 @@ export default function OrderDetailsPage() {
           </CardContent>
         </Card>
 
+        {order.accessories && order.accessories.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HugeiconsIcon icon={ShippingTruck02Icon} className="h-5 w-5" />
+                Accessories
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {order.accessories.map((accessory: any) => (
+                <div key={accessory.id} className="border-b pb-3 last:border-b-0 last:pb-0">
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium">{accessory.name || 'Unnamed Accessory'}</span>
+                    {accessory.plateNumber && (
+                      <span className="text-muted-foreground font-mono text-sm">
+                        {accessory.plateNumber}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {accessory.doorNo && (
+                      <div>
+                        <span className="text-muted-foreground">Door No: </span>
+                        <span>{accessory.doorNo}</span>
+                      </div>
+                    )}
+                    {accessory.category && (
+                      <div>
+                        <span className="text-muted-foreground">Category: </span>
+                        <span>{accessory.category}</span>
+                      </div>
+                    )}
+                    {accessory.plateNumberArabic && (
+                      <div className="col-span-2 text-right" dir="rtl">
+                        <span className="text-muted-foreground">Plate (Arabic): </span>
+                        <span>{accessory.plateNumberArabic}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

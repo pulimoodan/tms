@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+Don't edit migrations manually, always ask permission to create migration or ask the user to create migration

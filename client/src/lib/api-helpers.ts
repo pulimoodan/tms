@@ -37,8 +37,11 @@ export async function fetchLocations() {
 }
 
 
-export async function fetchVehicles() {
-  const response = await api.get('/vehicles?page=1&limit=100');
+export async function fetchVehicles(type?: string) {
+  // Fetch all vehicles - use a high limit to get everything in one request
+  const limit = 500;
+  const url = type ? `/vehicles?page=1&limit=${limit}&type=${type}` : `/vehicles?page=1&limit=${limit}`;
+  const response = await api.get(url);
   return response.data.success && Array.isArray(response.data.results) ? response.data.results : [];
 }
 
@@ -176,16 +179,21 @@ export async function fetchOrder(id: string) {
   if (response.data.success && response.data.result) {
     const order = response.data.result;
     return {
+      ...order, // Return the full order object to preserve all fields
       customerId: order.customerId || '',
       contractId: order.contractId || '',
       fromId: order.fromId || '',
       toId: order.toId || '',
       weight: order.weight?.toString() || '',
       volume: order.volume?.toString() || '',
+      value: order.value?.toString() || '',
       vehicleId: order.vehicleId || '',
+      attachmentId: order.attachmentId || '',
       driverId: order.driverId || '',
       status: order.status || 'Pending',
       orderNo: order.orderNo || '',
+      cargoDescription: order.cargoDescription || '',
+      accessories: order.accessories || [],
     };
   }
   return null;

@@ -39,6 +39,7 @@ import {
   Location03Icon,
   PackageIcon,
   ShippingTruck02Icon,
+  Wrench01Icon,
   Loading01Icon,
   File01Icon,
 } from '@hugeicons/core-free-icons';
@@ -48,7 +49,6 @@ import {
   fetchCustomers,
   fetchContracts,
   fetchLocations,
-  fetchVehicles,
   fetchDrivers,
   fetchOrder,
   createOrder,
@@ -56,6 +56,8 @@ import {
   fetchCustomerRoutes,
 } from '@/lib/api-helpers';
 import { MultiStepForm, type Step } from './multi-step-form';
+import { usePaginatedVehicles } from '@/hooks/use-paginated-vehicles';
+import { PaginatedCommand } from '@/components/ui/paginated-command';
 
 const orderFormSchema = z.object({
   customerId: z.string().min(1, 'Customer is required'),
@@ -93,6 +95,7 @@ const orderFormSchema = z.object({
   weightUom: z.string().optional(),
   tareWeight: z.string().optional(),
   trailerNumber: z.string().optional(),
+  accessoryIds: z.array(z.string()).optional(),
 });
 
 type OrderFormValues = z.infer<typeof orderFormSchema>;
@@ -152,11 +155,16 @@ export function OrderForm({
   const [allContracts, setAllContracts] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [customerRoutes, setCustomerRoutes] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [existingOrder, setExistingOrder] = useState<any>(null);
+
+  // Paginated vehicle hooks
+  const vehiclesData = usePaginatedVehicles({ type: 'Vehicle' });
+  const attachmentsData = usePaginatedVehicles({ type: 'Attachment' });
+  const accessoriesData = usePaginatedVehicles({ type: 'Accessory' });
   const [vehicleOpen, setVehicleOpen] = useState(false);
   const [attachmentOpen, setAttachmentOpen] = useState(false);
+  const [accessoryOpen, setAccessoryOpen] = useState(false);
   const [driverOpen, setDriverOpen] = useState(false);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [fromOpen, setFromOpen] = useState(false);
@@ -200,6 +208,7 @@ export function OrderForm({
       weightUom: '',
       tareWeight: '',
       trailerNumber: '',
+      accessoryIds: [],
     },
   });
 
@@ -207,18 +216,15 @@ export function OrderForm({
     async function loadData() {
       setIsLoading(true);
       try {
-        const [customersData, contractsData, locationsData, vehiclesData, driversData] =
-          await Promise.all([
-            fetchCustomers(),
-            fetchContracts(),
-            fetchLocations(),
-            fetchVehicles(),
-            fetchDrivers(),
-          ]);
+        const [customersData, contractsData, locationsData, driversData] = await Promise.all([
+          fetchCustomers(),
+          fetchContracts(),
+          fetchLocations(),
+          fetchDrivers(),
+        ]);
         setCustomers(customersData);
         setAllContracts(contractsData);
         setLocations(locationsData);
-        setVehicles(vehiclesData);
         setDrivers(driversData);
 
         if (isEditMode && orderId) {
@@ -235,7 +241,7 @@ export function OrderForm({
               volume: orderData.volume?.toString() || '',
               value: orderData.value?.toString() || '',
               vehicleId: orderData.vehicleId || '',
-              attachmentId: (orderData as any).attachmentId || '',
+              attachmentId: orderData.attachmentId || '',
               driverId: orderData.driverId || '',
               cargoDescription: orderData.cargoDescription || '',
               startKms: orderData.startKms?.toString() || '',
@@ -274,7 +280,22 @@ export function OrderForm({
               weightUom: orderData.weightUom || '',
               tareWeight: orderData.tareWeight?.toString() || '',
               trailerNumber: orderData.trailerNumber || '',
+              accessoryIds: (orderData.accessories || []).map((a: any) => a.id) || [],
             });
+
+            // Ensure selected vehicles/attachments/accessories are loaded
+            if (orderData.vehicleId) {
+              vehiclesData.ensureVehicleLoaded(orderData.vehicleId);
+            }
+            if ((orderData as any).attachmentId) {
+              attachmentsData.ensureVehicleLoaded((orderData as any).attachmentId);
+            }
+            if (orderData.accessories && Array.isArray(orderData.accessories)) {
+              orderData.accessories.forEach((acc: any) => {
+                accessoriesData.ensureVehicleLoaded(acc.id);
+              });
+            }
+
             if (orderData.orderNo) {
               setEntityLabel(orderData.orderNo);
             }
@@ -437,6 +458,8 @@ export function OrderForm({
         tareWeight: values.tareWeight ? parseFloat(values.tareWeight) : undefined,
         trailerNumber:
           values.trailerNumber && values.trailerNumber.trim() ? values.trailerNumber : undefined,
+        accessoryIds:
+          values.accessoryIds && values.accessoryIds.length > 0 ? values.accessoryIds : undefined,
       };
 
       payload.attachmentId = values.attachmentId.trim();
@@ -797,7 +820,9 @@ export function OrderForm({
                   control={form.control}
                   name="vehicleId"
                   render={({ field }) => {
-                    const selectedVehicle = vehicles.find((v: any) => v.id === field.value);
+                    const selectedVehicle = vehiclesData.vehicles.find(
+                      (v: any) => v.id === field.value,
+                    );
                     return (
                       <FormItem>
                         <FormLabel>Vehicle *</FormLabel>
@@ -812,7 +837,7 @@ export function OrderForm({
                                   data-testid="select-vehicle"
                                 >
                                   {selectedVehicle
-                                    ? `${selectedVehicle.name || 'Unnamed'} - ${selectedVehicle.plateNumber}`
+                                    ? `${selectedVehicle.name || 'Unnamed'} - ${selectedVehicle.plateNumber || 'N/A'}`
                                     : 'Select vehicle'}
                                   <HugeiconsIcon
                                     icon={ShippingTruck02Icon}
@@ -822,42 +847,37 @@ export function OrderForm({
                               </FormControl>
                             </PopoverTrigger>
                             <PopoverContent className="w-[400px] p-0" align="start">
-                              <Command>
-                                <CommandInput placeholder="Search vehicles by door no, asset no, name, or chassis no..." />
-                                <CommandList>
-                                  <CommandEmpty>No vehicles found.</CommandEmpty>
-                                  <CommandGroup>
-                                    {vehicles
-                                      .filter(
-                                        (v: any) => v.type === 'Vehicle' || v.type === 'Equipment',
-                                      )
-                                      .map((vehicle: any) => (
-                                        <CommandItem
-                                          key={vehicle.id}
-                                          value={`${vehicle.doorNo || ''} ${vehicle.asset || ''} ${vehicle.name || ''} ${vehicle.chassisNo || ''}`}
-                                          onSelect={() => {
-                                            field.onChange(vehicle.id);
-                                            setVehicleOpen(false);
-                                          }}
-                                        >
-                                          <div className="flex flex-col">
-                                            <span>
-                                              {vehicle.name || 'Unnamed'} -{' '}
-                                              {vehicle.plateNumber || 'N/A'}
-                                            </span>
-                                            {(vehicle.doorNo || vehicle.asset) && (
-                                              <span className="text-xs text-muted-foreground">
-                                                {[vehicle.doorNo, vehicle.asset]
-                                                  .filter(Boolean)
-                                                  .join(' / ')}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </CommandItem>
-                                      ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
+                              <PaginatedCommand
+                                items={vehiclesData.vehicles}
+                                isLoading={vehiclesData.isLoading}
+                                hasMore={vehiclesData.hasMore}
+                                onLoadMore={vehiclesData.loadMore}
+                                onSelect={(vehicle) => {
+                                  field.onChange(vehicle.id);
+                                  setVehicleOpen(false);
+                                }}
+                                searchValue={vehiclesData.searchQuery}
+                                onSearchChange={vehiclesData.setSearchQuery}
+                                placeholder="Search vehicles by door no, asset no, name, or chassis no..."
+                                emptyMessage="No vehicles found."
+                                renderItem={(vehicle) => (
+                                  <div className="flex flex-col">
+                                    <span>
+                                      {vehicle.name || 'Unnamed'} - {vehicle.plateNumber || 'N/A'}
+                                    </span>
+                                    {(vehicle.doorNo || vehicle.asset) && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {[vehicle.doorNo, vehicle.asset]
+                                          .filter(Boolean)
+                                          .join(' / ')}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                getItemValue={(vehicle) =>
+                                  `${vehicle.doorNo || ''} ${vehicle.asset || ''} ${vehicle.name || ''} ${vehicle.chassisNo || ''}`
+                                }
+                              />
                             </PopoverContent>
                           </Popover>
                           {field.value && (
@@ -897,8 +917,8 @@ export function OrderForm({
                 control={form.control}
                 name="attachmentId"
                 render={({ field }) => {
-                  const selectedAttachment = vehicles.find(
-                    (v: any) => v.id === field.value && v.type === 'Attachment',
+                  const selectedAttachment = attachmentsData.vehicles.find(
+                    (v: any) => v.id === field.value,
                   );
                   return (
                     <FormItem>
@@ -924,40 +944,37 @@ export function OrderForm({
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-[400px] p-0" align="start">
-                            <Command>
-                              <CommandInput placeholder="Search attachments by door no, asset no, name, or chassis no..." />
-                              <CommandList>
-                                <CommandEmpty>No attachments found.</CommandEmpty>
-                                <CommandGroup>
-                                  {vehicles
-                                    .filter((v: any) => v.type === 'Attachment')
-                                    .map((attachment: any) => (
-                                      <CommandItem
-                                        key={attachment.id}
-                                        value={`${attachment.doorNo || ''} ${attachment.asset || ''} ${attachment.name || ''} ${attachment.chassisNo || ''}`}
-                                        onSelect={() => {
-                                          field.onChange(attachment.id);
-                                          setAttachmentOpen(false);
-                                        }}
-                                      >
-                                        <div className="flex flex-col">
-                                          <span>
-                                            {attachment.name || 'Unnamed'} -{' '}
-                                            {attachment.chassisNo || 'N/A'}
-                                          </span>
-                                          {(attachment.doorNo || attachment.asset) && (
-                                            <span className="text-xs text-muted-foreground">
-                                              {[attachment.doorNo, attachment.asset]
-                                                .filter(Boolean)
-                                                .join(' / ')}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
+                            <PaginatedCommand
+                              items={attachmentsData.vehicles}
+                              isLoading={attachmentsData.isLoading}
+                              hasMore={attachmentsData.hasMore}
+                              onLoadMore={attachmentsData.loadMore}
+                              onSelect={(attachment) => {
+                                field.onChange(attachment.id);
+                                setAttachmentOpen(false);
+                              }}
+                              searchValue={attachmentsData.searchQuery}
+                              onSearchChange={attachmentsData.setSearchQuery}
+                              placeholder="Search attachments by door no, asset no, name, or chassis no..."
+                              emptyMessage="No attachments found."
+                              renderItem={(attachment) => (
+                                <div className="flex flex-col">
+                                  <span>
+                                    {attachment.name || 'Unnamed'} - {attachment.chassisNo || 'N/A'}
+                                  </span>
+                                  {(attachment.doorNo || attachment.asset) && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {[attachment.doorNo, attachment.asset]
+                                        .filter(Boolean)
+                                        .join(' / ')}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              getItemValue={(attachment) =>
+                                `${attachment.doorNo || ''} ${attachment.asset || ''} ${attachment.name || ''} ${attachment.chassisNo || ''}`
+                              }
+                            />
                           </PopoverContent>
                         </Popover>
                         {field.value && (
@@ -974,6 +991,127 @@ export function OrderForm({
                           </Button>
                         )}
                       </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+              <FormField
+                control={form.control}
+                name="accessoryIds"
+                render={({ field }) => {
+                  const selectedAccessories = accessoriesData.vehicles.filter((v: any) =>
+                    field.value?.includes(v.id),
+                  );
+                  return (
+                    <FormItem>
+                      <FormLabel>Accessories</FormLabel>
+                      <div className="flex gap-2">
+                        <Popover open={accessoryOpen} onOpenChange={setAccessoryOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="flex-1 justify-between"
+                                data-testid="select-accessories"
+                              >
+                                {selectedAccessories.length > 0
+                                  ? `${selectedAccessories.length} accessory${selectedAccessories.length !== 1 ? 'ies' : ''} selected`
+                                  : 'Select accessories (optional)'}
+                                <HugeiconsIcon
+                                  icon={Wrench01Icon}
+                                  className="ml-2 h-4 w-4 shrink-0 opacity-50"
+                                />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0" align="start">
+                            <PaginatedCommand
+                              items={accessoriesData.vehicles}
+                              isLoading={accessoriesData.isLoading}
+                              hasMore={accessoriesData.hasMore}
+                              onLoadMore={accessoriesData.loadMore}
+                              onSelect={(accessory) => {
+                                const currentValue = field.value || [];
+                                const isSelected = currentValue.includes(accessory.id);
+                                const newValue = isSelected
+                                  ? currentValue.filter((id: string) => id !== accessory.id)
+                                  : [...currentValue, accessory.id];
+                                field.onChange(newValue);
+                              }}
+                              searchValue={accessoriesData.searchQuery}
+                              onSearchChange={accessoriesData.setSearchQuery}
+                              placeholder="Search accessories by name, door no, or plate number..."
+                              emptyMessage="No accessories found."
+                              renderItem={(accessory) => {
+                                const isSelected = field.value?.includes(accessory.id);
+                                return (
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <div
+                                      className={`h-4 w-4 border rounded flex items-center justify-center ${
+                                        isSelected ? 'bg-primary border-primary' : ''
+                                      }`}
+                                    >
+                                      {isSelected && <span className="text-white text-xs">✓</span>}
+                                    </div>
+                                    <div className="flex flex-col flex-1">
+                                      <span>
+                                        {accessory.name || 'Unnamed'} -{' '}
+                                        {accessory.plateNumber || 'N/A'}
+                                      </span>
+                                      {(accessory.doorNo || accessory.asset) && (
+                                        <span className="text-xs text-muted-foreground">
+                                          {[accessory.doorNo, accessory.asset]
+                                            .filter(Boolean)
+                                            .join(' / ')}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }}
+                              getItemValue={(accessory) =>
+                                `${accessory.doorNo || ''} ${accessory.name || ''} ${accessory.plateNumber || ''}`
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        {field.value && field.value.length > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              field.onChange([]);
+                            }}
+                          >
+                            ×
+                          </Button>
+                        )}
+                      </div>
+                      {selectedAccessories.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedAccessories.map((accessory: any) => (
+                            <Badge key={accessory.id} variant="secondary" className="text-xs">
+                              {accessory.name || 'Unnamed'}
+                              {accessory.plateNumber && ` - ${accessory.plateNumber}`}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newValue =
+                                    field.value?.filter((id: string) => id !== accessory.id) || [];
+                                  field.onChange(newValue);
+                                }}
+                                className="ml-2 hover:text-destructive"
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <FormDescription>Optional - Select multiple accessories</FormDescription>
                       <FormMessage />
                     </FormItem>
                   );

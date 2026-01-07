@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
-import { Vehicle } from '@prisma/client';
+import { Vehicle, VehicleType } from '@prisma/client';
 
 @Injectable()
 export class VehiclesService {
@@ -60,17 +60,40 @@ export class VehiclesService {
     });
   }
 
-  async findAll(page: number = 1, limit: number = 10, companyId: string) {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    companyId: string,
+    type?: VehicleType,
+    search?: string,
+  ) {
     const skip = (page - 1) * limit;
+
+    const where: any = { companyId };
+    if (type) {
+      where.type = type;
+    }
+
+    if (search && search.trim()) {
+      const searchTerm = search.trim();
+      where.OR = [
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { plateNumber: { contains: searchTerm, mode: 'insensitive' } },
+        { doorNo: { contains: searchTerm, mode: 'insensitive' } },
+        { asset: { contains: searchTerm, mode: 'insensitive' } },
+        { chassisNo: { contains: searchTerm, mode: 'insensitive' } },
+        { equipmentNo: { contains: searchTerm, mode: 'insensitive' } },
+      ];
+    }
 
     const [vehicles, total] = await Promise.all([
       this.prisma.vehicle.findMany({
-        where: { companyId },
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.vehicle.count({ where: { companyId } }),
+      this.prisma.vehicle.count({ where }),
     ]);
 
     return {

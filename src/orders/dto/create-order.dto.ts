@@ -1,5 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsUUID, IsEnum, IsNumber, IsOptional, Min } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsUUID,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  Min,
+  IsArray,
+  ArrayMinSize,
+} from 'class-validator';
 import { OrderStatus } from '@prisma/client';
 import { Type, Transform } from 'class-transformer';
 
@@ -60,6 +70,17 @@ export class CreateOrderDto {
   })
   @IsUUID()
   attachmentId?: string;
+
+  @ApiPropertyOptional({
+    example: ['uuid-here-1', 'uuid-here-2'],
+    description: 'Array of Accessory IDs',
+    type: [String],
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  accessoryIds?: string[];
 
   @ApiProperty({ example: 'uuid-here', description: 'Driver ID', format: 'uuid' })
   @IsUUID()

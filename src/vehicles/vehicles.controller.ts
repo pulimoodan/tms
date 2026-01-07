@@ -52,8 +52,14 @@ export class VehiclesController {
     @Query() paginationDto: PaginationDto,
     @CurrentUser() currentUser: any,
   ): Promise<ApiListResponseDto<any>> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const result = await this.vehiclesService.findAll(page, limit, currentUser.companyId);
+    const { page = 1, limit = 10, type, search } = paginationDto;
+    const result = await this.vehiclesService.findAll(
+      page,
+      limit,
+      currentUser.companyId,
+      type,
+      search,
+    );
     return {
       success: true,
       results: result.results,

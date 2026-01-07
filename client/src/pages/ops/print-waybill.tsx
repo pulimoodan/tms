@@ -445,6 +445,22 @@ export default function PrintWaybillPage() {
                 </td>
               </tr>
                 )}
+            {order.accessories && order.accessories.length > 0 && (
+              <tr>
+                <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
+                  Accessories:
+                </td>
+                <td className="border border-gray-400 px-4 py-2" colSpan={3}>
+                  {order.accessories.map((accessory: any, index: number) => (
+                    <div key={accessory.id} className={index > 0 ? 'mt-1' : ''}>
+                      {accessory.name || 'Unnamed'}
+                      {accessory.plateNumber && ` (${accessory.plateNumber})`}
+                      {accessory.doorNo && ` - Door: ${accessory.doorNo}`}
+                    </div>
+                  ))}
+                </td>
+              </tr>
+            )}
             {(order.startKms !== null && order.startKms !== undefined) ||
             (order.kmOut !== null && order.kmOut !== undefined) ||
             (order.kmIn !== null && order.kmIn !== undefined) ||

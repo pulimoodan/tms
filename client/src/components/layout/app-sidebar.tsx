@@ -46,59 +46,59 @@ export const menuGroups = [
       },
     ],
   },
-  {
-    label: 'Fleet',
-    items: [
-      {
-        title: 'Fleet',
-        icon: 'ShippingTruck02Icon',
-        items: [
-          { title: 'Vehicles', url: '/fleet/vehicles', badge: null },
-          { title: 'Drivers', url: '/drivers/list', badge: null },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Sales',
-    items: [
-      {
-        title: 'Sales',
-        icon: 'UserGroupIcon',
-        items: [{ title: 'Customers', url: '/sales/customers', badge: null }],
-      },
-    ],
-  },
-  {
-    label: 'Purchase',
-    items: [
-      {
-        title: 'Purchase',
-        icon: 'ShoppingCartIcon',
-        items: [
-          { title: 'Purchase Request', url: '/purchase/purchase-requests', badge: null },
-          { title: 'RFQs', url: '/purchase/rfqs', badge: null },
-          { title: 'Purchase Orders', url: '/purchase/purchase-orders', badge: null },
-          { title: 'Purchase Bills', url: '/purchase/receipts', badge: null },
-          { title: 'Bidding (RFQ Comparison)', url: '/purchase/rfqs/comparison', badge: null },
-          { title: 'Vendors', url: '/purchase/vendors', badge: null },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Config',
-    items: [
-      {
-        title: 'Configuration',
-        icon: 'Settings01Icon',
-        items: [
-          { title: 'Products', url: '/purchase/products', badge: null },
-          { title: 'Taxes', url: '/purchase/taxes', badge: null },
-        ],
-      },
-    ],
-  },
+  // {
+  //   label: 'Fleet',
+  //   items: [
+  //     {
+  //       title: 'Fleet',
+  //       icon: 'ShippingTruck02Icon',
+  //       items: [
+  //         { title: 'Vehicles', url: '/fleet/vehicles', badge: null },
+  //         { title: 'Drivers', url: '/drivers/list', badge: null },
+  //       ],
+  //     },
+  //   ],
+  // },
+  // {
+  //   label: 'Sales',
+  //   items: [
+  //     {
+  //       title: 'Sales',
+  //       icon: 'UserGroupIcon',
+  //       items: [{ title: 'Customers', url: '/sales/customers', badge: null }],
+  //     },
+  //   ],
+  // },
+  // {
+  //   label: 'Purchase',
+  //   items: [
+  //     {
+  //       title: 'Purchase',
+  //       icon: 'ShoppingCartIcon',
+  //       items: [
+  //         { title: 'Purchase Request', url: '/purchase/purchase-requests', badge: null },
+  //         { title: 'RFQs', url: '/purchase/rfqs', badge: null },
+  //         { title: 'Purchase Orders', url: '/purchase/purchase-orders', badge: null },
+  //         { title: 'Purchase Bills', url: '/purchase/receipts', badge: null },
+  //         { title: 'Bidding (RFQ Comparison)', url: '/purchase/rfqs/comparison', badge: null },
+  //         { title: 'Vendors', url: '/purchase/vendors', badge: null },
+  //       ],
+  //     },
+  //   ],
+  // },
+  // {
+  //   label: 'Config',
+  //   items: [
+  //     {
+  //       title: 'Configuration',
+  //       icon: 'Settings01Icon',
+  //       items: [
+  //         { title: 'Products', url: '/purchase/products', badge: null },
+  //         { title: 'Taxes', url: '/purchase/taxes', badge: null },
+  //       ],
+  //     },
+  //   ],
+  // },
 ];
 
 export function AppSidebar() {

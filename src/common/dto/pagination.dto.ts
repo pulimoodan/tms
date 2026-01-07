@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsInt, Min, Max, IsEnum } from 'class-validator';
+import { VehicleType } from '@prisma/client';
 
 export class PaginationDto {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
@@ -10,11 +11,21 @@ export class PaginationDto {
   @Min(1)
   page?: number = 1;
 
-  @ApiPropertyOptional({ default: 10, minimum: 1, maximum: 100 })
+  @ApiPropertyOptional({ default: 10, minimum: 1, maximum: 500 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(500)
   limit?: number = 10;
+
+  @ApiPropertyOptional({ enum: VehicleType, description: 'Filter vehicles by type' })
+  @IsOptional()
+  @IsEnum(VehicleType)
+  type?: VehicleType;
+
+  @ApiPropertyOptional({ description: 'Search query for filtering vehicles' })
+  @IsOptional()
+  @Type(() => String)
+  search?: string;
 }

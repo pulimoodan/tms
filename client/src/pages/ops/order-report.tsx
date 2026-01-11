@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import {
   flexRender,
@@ -15,31 +14,19 @@ import {
 } from '@tanstack/react-table';
 import {
   ArrowUpDownIcon,
-  MoreVerticalIcon,
   Download01Icon,
   FilterIcon,
   Loading01Icon,
-  Search01Icon,
   File01Icon,
-  Calendar01Icon,
 } from '@hugeicons/core-free-icons';
 import { PageTitle } from '@/components/ui/page-title';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -163,7 +150,7 @@ function mapOrderToReport(order: Order, index: number): WaybillReport {
     attachment: order.attachment?.name || order.attachment?.plateNumber || '—',
     kmStart: order.startKms || order.kmOut || 0,
     driverName: order.driver?.name || '—',
-    badgeNumber: order.driver?.badgeNo || order.driver?.iqamaNumber || '—',
+    badgeNumber: order.driver?.badgeNumber || order.driver?.iqamaNumber || '—',
     departureDate: departureDate.toISOString().split('T')[0],
     tripNumber: order.tripNumber ? parseInt(order.tripNumber) || index + 1 : index + 1,
     tripMonth: tripMonth,
@@ -387,13 +374,10 @@ const columns: ColumnDef<WaybillReport>[] = [
   },
 ];
 
-export default function WaybillReportPage() {
-  const [, setLocation] = useLocation();
+export default function OrderReportPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>();
 
@@ -451,43 +435,51 @@ export default function WaybillReportPage() {
         toDate.setHours(23, 59, 59, 999);
         if (itemDate > toDate) return false;
       }
-      if (selectedMonth && item.tripMonth !== selectedMonth) return false;
       if (selectedCustomer && item.customerName !== selectedCustomer) return false;
       return true;
     });
-  }, [allData, dateRange, selectedMonth, selectedCustomer]);
+  }, [allData, dateRange, selectedCustomer]);
+
+  // Calculate analytics
+  const analytics = useMemo(() => {
+    const totalWaybills = data.length;
+    const totalAllowance = data.reduce((sum, item) => sum + item.allowance, 0);
+    const totalBackLoadAllowance = data.reduce((sum, item) => sum + item.backLoadAllowance, 0);
+    const totalTripAllowance = data.reduce((sum, item) => sum + item.totalTripAllowance, 0);
+    const totalKmsRun = data.reduce((sum, item) => sum + item.kmsRun, 0);
+    const podSubmittedCount = data.filter((item) => item.podSubmitted).length;
+    const podNotSubmittedCount = totalWaybills - podSubmittedCount;
+
+    return {
+      totalWaybills,
+      totalAllowance,
+      totalBackLoadAllowance,
+      totalTripAllowance,
+      totalKmsRun,
+      podSubmittedCount,
+      podNotSubmittedCount,
+    };
+  }, [data]);
 
   const table = useReactTable({
     data: data || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel({
-      pageSize: 50, // Limit page size for better performance
-    }),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 50,
+      },
+    },
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: (row, columnId, filterValue) => {
-      if (!filterValue) return true;
-      const report = row.original;
-      const search = filterValue.toLowerCase();
-      return (
-        report.customerName?.toLowerCase().includes(search) ||
-        report.driverName?.toLowerCase().includes(search) ||
-        report.plateNumber?.toLowerCase().includes(search) ||
-        report.jobNumber?.toLowerCase().includes(search) ||
-        report.podNumber?.toLowerCase().includes(search) ||
-        false
-      );
-    },
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      globalFilter,
     },
     enableColumnResizing: false,
     enableRowSelection: false,
@@ -566,10 +558,6 @@ export default function WaybillReportPage() {
     document.body.removeChild(link);
   };
 
-  const uniqueMonths = useMemo(
-    () => Array.from(new Set(allData.map((d) => d.tripMonth))).sort(),
-    [allData],
-  );
   const uniqueCustomers = useMemo(
     () => Array.from(new Set(allData.map((d) => d.customerName))).sort(),
     [allData],
@@ -677,16 +665,16 @@ export default function WaybillReportPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-4 w-full min-w-0 overflow-x-hidden">
+    <div className="flex flex-col gap-6 p-4 min-w-0 overflow-x-hidden">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="min-w-0 flex-shrink">
+        <div className="min-w-0 shrink">
           <PageTitle
             title="Order Report"
             description="Comprehensive trip and order report with detailed information"
             icon={File01Icon}
           />
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <DateRangePicker
             value={dateRange}
             onChange={setDateRange}
@@ -704,36 +692,88 @@ export default function WaybillReportPage() {
         </div>
       </div>
 
-      <Card className="w-full overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4 mb-4 flex-wrap">
-            <div className="relative flex-1 max-w-sm">
-              <HugeiconsIcon
-                icon={Search01Icon}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
-              />
-              <Input
-                placeholder="Search by customer, driver, plate, job, or POD..."
-                value={globalFilter ?? ''}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-9"
-              />
+      {/* Analytics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Waybills</p>
+                <p className="text-2xl font-bold mt-2">{analytics.totalWaybills}</p>
+              </div>
             </div>
-            <Select
-              value={selectedMonth || undefined}
-              onValueChange={(value) => setSelectedMonth(value || '')}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All Months" />
-              </SelectTrigger>
-              <SelectContent>
-                {uniqueMonths.map((month) => (
-                  <SelectItem key={month} value={month}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Allowance</p>
+                <p className="text-2xl font-bold mt-2">{analytics.totalAllowance.toFixed(2)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Trip Allowance</p>
+                <p className="text-2xl font-bold mt-2">{analytics.totalTripAllowance.toFixed(2)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total KMs Run</p>
+                <p className="text-2xl font-bold mt-2">{analytics.totalKmsRun.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Back Load Allowance</p>
+                <p className="text-2xl font-bold mt-2">
+                  {analytics.totalBackLoadAllowance.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">POD Submitted</p>
+                <p className="text-2xl font-bold mt-2">{analytics.podSubmittedCount}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">POD Not Submitted</p>
+                <p className="text-2xl font-bold mt-2">{analytics.podNotSubmittedCount}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="overflow-hidden w-full max-w-full">
+        <CardContent className="p-6 w-full max-w-full">
+          <div className="flex items-center gap-4 mb-4 flex-wrap">
             <Select
               value={selectedCustomer || undefined}
               onValueChange={(value) => setSelectedCustomer(value || '')}
@@ -778,8 +818,8 @@ export default function WaybillReportPage() {
             </DropdownMenu>
           </div>
 
-          <div className="rounded-md border overflow-x-auto">
-            <Table className="min-w-[1200px] w-full">
+          <div className="rounded-md border overflow-scroll w-full">
+            <table className="caption-bottom text-sm">
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
@@ -812,7 +852,7 @@ export default function WaybillReportPage() {
                   </TableRow>
                 )}
               </TableBody>
-            </Table>
+            </table>
           </div>
 
           <div className="flex items-center justify-between mt-4">

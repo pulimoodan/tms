@@ -149,6 +149,30 @@ interface ContractFormProps {
   onComplete?: () => void;
 }
 
+const STEPS: Step[] = [
+  {
+    number: 1,
+    title: 'Contract Info',
+    icon: File01Icon,
+    description: 'Basic contract details',
+    fields: ['contractNumber', 'customerId', 'startDate', 'endDate'],
+  },
+  {
+    number: 2,
+    title: 'Terms & Conditions',
+    icon: Settings01Icon,
+    description: 'Financials and requirements',
+    fields: ['creditTermId'],
+  },
+  {
+    number: 3,
+    title: 'Routes',
+    icon: ShippingTruck02Icon,
+    description: 'Service routes and pricing',
+    fields: [],
+  },
+];
+
 export function ContractForm({
   initialData,
   isEditMode = false,
@@ -159,6 +183,7 @@ export function ContractForm({
   const [, setLocation] = useLocation();
   const { setEntityLabel } = useBreadcrumb();
   const [step, setStep] = useState(1);
+  const [maxStepReached, setMaxStepReached] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -218,6 +243,8 @@ export function ContractForm({
             if (contractData.contractNumber) {
               setEntityLabel(contractData.contractNumber);
             }
+            // In edit mode, allow navigation to all steps
+            setMaxStepReached(STEPS.length);
           }
         } else if (initialData) {
           form.reset(initialData);
@@ -241,30 +268,6 @@ export function ContractForm({
     return () => setEntityLabel(null);
   }, [isEditMode, contractId, setEntityLabel]);
 
-  const STEPS: Step[] = [
-    {
-      number: 1,
-      title: 'Contract Info',
-      icon: File01Icon,
-      description: 'Basic contract details',
-      fields: ['contractNumber', 'customerId', 'startDate', 'endDate'],
-    },
-    {
-      number: 2,
-      title: 'Terms & Conditions',
-      icon: Settings01Icon,
-      description: 'Financials and requirements',
-      fields: ['creditTermId'],
-    },
-    {
-      number: 3,
-      title: 'Routes',
-      icon: ShippingTruck02Icon,
-      description: 'Service routes and pricing',
-      fields: [],
-    },
-  ];
-
   const handleNextStep = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -281,6 +284,13 @@ export function ContractForm({
   const handlePrevStep = () => {
     if (step > 1) {
       setStep(step - 1);
+    }
+  };
+
+  const handleStepClick = (stepNumber: number) => {
+    // Allow clicking on any step up to the maximum step reached
+    if (stepNumber >= 1 && stepNumber <= STEPS.length && stepNumber <= maxStepReached) {
+      setStep(stepNumber);
     }
   };
 
@@ -387,8 +397,10 @@ export function ContractForm({
         <MultiStepForm
           steps={STEPS}
           currentStep={step}
+          maxStepReached={maxStepReached}
           onNext={handleNextStep}
           onPrev={handlePrevStep}
+          onStepClick={handleStepClick}
           isSubmitting={isSubmitting}
           submitLabel="Save Contract"
           submittingLabel="Saving..."

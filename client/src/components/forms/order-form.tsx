@@ -147,6 +147,7 @@ export function OrderForm({
   const { toast } = useToast();
   const { setEntityLabel } = useBreadcrumb();
   const [step, setStep] = useState(1);
+  const [maxStepReached, setMaxStepReached] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -299,6 +300,8 @@ export function OrderForm({
             if (orderData.orderNo) {
               setEntityLabel(orderData.orderNo);
             }
+            // In edit mode, allow navigation to all steps
+            setMaxStepReached(STEPS.length);
           }
         } else if (initialData) {
           form.reset({
@@ -380,13 +383,22 @@ export function OrderForm({
     if (!currentStepData?.fields) return;
     const isValid = await form.trigger(currentStepData.fields as any);
     if (isValid && step < STEPS.length) {
-      setStep(step + 1);
+      const nextStep = step + 1;
+      setStep(nextStep);
+      setMaxStepReached((prev) => Math.max(prev, nextStep));
     }
   };
 
   const handlePrevStep = () => {
     if (step > 1) {
       setStep(step - 1);
+    }
+  };
+
+  const handleStepClick = (stepNumber: number) => {
+    // Allow clicking on any step up to the maximum step reached
+    if (stepNumber >= 1 && stepNumber <= STEPS.length && stepNumber <= maxStepReached) {
+      setStep(stepNumber);
     }
   };
 
@@ -515,8 +527,10 @@ export function OrderForm({
         <MultiStepForm
           steps={STEPS}
           currentStep={step}
+          maxStepReached={maxStepReached}
           onNext={handleNextStep}
           onPrev={handlePrevStep}
+          onStepClick={handleStepClick}
           isSubmitting={isSubmitting}
           submitLabel={isEditMode ? 'Update Order' : 'Create Order'}
           submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}

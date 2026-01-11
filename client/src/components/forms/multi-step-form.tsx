@@ -20,8 +20,10 @@ export interface Step {
 interface MultiStepFormProps {
   steps: Step[];
   currentStep: number;
+  maxStepReached?: number;
   onNext: (e: React.MouseEvent) => void;
   onPrev: () => void;
+  onStepClick?: (stepNumber: number) => void;
   onSubmit?: () => void;
   isSubmitting?: boolean;
   submitLabel?: string;
@@ -32,8 +34,10 @@ interface MultiStepFormProps {
 export function MultiStepForm({
   steps,
   currentStep,
+  maxStepReached,
   onNext,
   onPrev,
+  onStepClick,
   onSubmit,
   isSubmitting = false,
   submitLabel = 'Save',
@@ -42,6 +46,7 @@ export function MultiStepForm({
 }: MultiStepFormProps) {
   const currentStepData = steps[currentStep - 1];
   const isLastStep = currentStep === steps.length;
+  const effectiveMaxStep = maxStepReached ?? currentStep;
 
   return (
     <div className="space-y-8">
@@ -55,6 +60,9 @@ export function MultiStepForm({
         {steps.map((step, index) => {
           const isActive = currentStep === step.number;
           const isCompleted = currentStep > step.number;
+          const isReachable = step.number <= effectiveMaxStep;
+          const isClickable = isReachable;
+          const canClick = onStepClick && isClickable && !isSubmitting;
 
           return (
             <div key={step.number} className="flex flex-col items-center">
@@ -69,13 +77,27 @@ export function MultiStepForm({
                 )}
 
                 <div
+                  onClick={canClick ? () => onStepClick(step.number) : undefined}
                   className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all z-20 relative ${
                     isActive
                       ? 'border-primary bg-primary/10 dark:bg-primary/20'
                       : isCompleted
                         ? 'border-primary bg-primary'
                         : 'border-muted-foreground/30 bg-muted'
+                  } ${
+                    canClick
+                      ? 'cursor-pointer hover:scale-110 hover:shadow-md'
+                      : isClickable
+                        ? 'cursor-default'
+                        : 'cursor-not-allowed opacity-60'
                   }`}
+                  title={
+                    isActive
+                      ? `Current step: ${step.title}`
+                      : isReachable
+                        ? `Click to go to: ${step.title}`
+                        : `Step ${step.number}: ${step.title} (not yet reached)`
+                  }
                 >
                   <HugeiconsIcon
                     icon={step.icon}
@@ -100,7 +122,14 @@ export function MultiStepForm({
               </div>
 
               <div className="text-center w-full">
-                <p className="text-sm font-semibold">{step.title}</p>
+                <p
+                  onClick={canClick ? () => onStepClick(step.number) : undefined}
+                  className={`text-sm font-semibold ${
+                    canClick ? 'cursor-pointer hover:text-primary transition-colors' : ''
+                  }`}
+                >
+                  {step.title}
+                </p>
                 <p className="text-xs text-muted-foreground">{step.description}</p>
               </div>
             </div>

@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -7,6 +13,51 @@ import { Order } from '@prisma/client';
 @Injectable()
 export class OrdersService {
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Update vehicle status based on active orders
+   * Sets vehicle to 'OnTrip' if it has any InProgress orders, otherwise sets to 'Active'
+   */
+  private async updateVehicleStatus(vehicleId: string | null, companyId: string): Promise<void> {
+    if (!vehicleId) return;
+
+    const hasActiveOrders = await this.prisma.order.findFirst({
+      where: {
+        companyId,
+        vehicleId,
+        status: 'InProgress',
+      },
+    });
+
+    await this.prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: {
+        status: hasActiveOrders ? 'OnTrip' : 'Active',
+      },
+    });
+  }
+
+  /**
+   * Update attachment status based on active orders
+   */
+  private async updateAttachmentStatus(attachmentId: string | null, companyId: string): Promise<void> {
+    if (!attachmentId) return;
+
+    const hasActiveOrders = await this.prisma.order.findFirst({
+      where: {
+        companyId,
+        attachmentId,
+        status: 'InProgress',
+      },
+    });
+
+    await this.prisma.vehicle.update({
+      where: { id: attachmentId },
+      data: {
+        status: hasActiveOrders ? 'OnTrip' : 'Active',
+      },
+    });
+  }
 
   private async generateOrderNumber(companyId: string): Promise<string> {
     const year = new Date().getFullYear().toString().slice(-2);
@@ -96,6 +147,10 @@ export class OrdersService {
       }
     }
 
+    // Track duplicated resources (but allow creation)
+    const duplicatedResources: string[] = [];
+    let duplicationNotes = '';
+
     if (createOrderDto.vehicleId) {
       const vehicle = await this.prisma.vehicle.findFirst({
         where: { id: createOrderDto.vehicleId, companyId },
@@ -103,6 +158,22 @@ export class OrdersService {
 
       if (!vehicle) {
         throw new NotFoundException(`Vehicle with ID '${createOrderDto.vehicleId}' not found`);
+      }
+
+      // Check if vehicle is already assigned to an in-progress order
+      const pendingOrderWithVehicle = await this.prisma.order.findFirst({
+        where: {
+          companyId,
+          vehicleId: createOrderDto.vehicleId,
+          status: 'InProgress',
+        },
+      });
+
+      if (pendingOrderWithVehicle) {
+        duplicatedResources.push(
+          `Vehicle (${vehicle.name || vehicle.plateNumber || vehicle.asset || 'N/A'})`,
+        );
+        duplicationNotes += `Vehicle is already assigned to order ${pendingOrderWithVehicle.orderNo}. `;
       }
     }
 
@@ -113,6 +184,41 @@ export class OrdersService {
 
       if (!driver) {
         throw new NotFoundException(`Driver with ID '${createOrderDto.driverId}' not found`);
+      }
+
+      // Check if driver is already assigned to an in-progress order
+      const pendingOrderWithDriver = await this.prisma.order.findFirst({
+        where: {
+          companyId,
+          driverId: createOrderDto.driverId,
+          status: 'InProgress',
+        },
+      });
+
+      if (pendingOrderWithDriver) {
+        duplicatedResources.push(`Driver (${driver.name})`);
+        duplicationNotes += `Driver is already assigned to order ${pendingOrderWithDriver.orderNo}. `;
+      }
+    }
+
+    if (createOrderDto.attachmentId) {
+      // Check if attachment is already assigned to an in-progress order
+      const pendingOrderWithAttachment = await this.prisma.order.findFirst({
+        where: {
+          companyId,
+          attachmentId: createOrderDto.attachmentId,
+          status: 'InProgress',
+        },
+      });
+
+      if (pendingOrderWithAttachment) {
+        const attachment = await this.prisma.vehicle.findFirst({
+          where: { id: createOrderDto.attachmentId, companyId },
+        });
+        duplicatedResources.push(
+          `Attachment (${attachment?.name || attachment?.plateNumber || attachment?.asset || 'N/A'})`,
+        );
+        duplicationNotes += `Attachment is already assigned to order ${pendingOrderWithAttachment.orderNo}. `;
       }
     }
 
@@ -132,11 +238,33 @@ export class OrdersService {
           `One or more accessories not found or not of type Accessory: ${missingIds.join(', ')}`,
         );
       }
+
+      // Check for duplicated accessories
+      for (const accessory of accessories) {
+        const pendingOrderWithAccessory = await this.prisma.order.findFirst({
+          where: {
+            companyId,
+            status: 'InProgress',
+            accessories: {
+              some: {
+                id: accessory.id,
+              },
+            },
+          },
+        });
+
+        if (pendingOrderWithAccessory) {
+          duplicatedResources.push(
+            `Accessory (${accessory.name || accessory.plateNumber || 'N/A'})`,
+          );
+          duplicationNotes += `Accessory is already assigned to order ${pendingOrderWithAccessory.orderNo}. `;
+        }
+      }
     }
 
     const orderNo = await this.generateOrderNumber(companyId);
 
-    return this.prisma.order.create({
+    const order = await this.prisma.order.create({
       data: {
         companyId,
         orderNo,
@@ -150,7 +278,7 @@ export class OrdersService {
         vehicleId: createOrderDto.vehicleId,
         attachmentId: createOrderDto.attachmentId || null,
         driverId: createOrderDto.driverId,
-        status: 'Pending',
+        status: 'InProgress',
         tripNumber: createOrderDto.tripNumber || null,
         cargoDescription: createOrderDto.cargoDescription || null,
         sealNumber: createOrderDto.sealNumber || null,
@@ -238,16 +366,56 @@ export class OrdersService {
           createOrderDto.trailerNumber && createOrderDto.trailerNumber.trim()
             ? createOrderDto.trailerNumber
             : null,
+        temperature:
+          createOrderDto.temperature && createOrderDto.temperature.trim()
+            ? createOrderDto.temperature
+            : null,
+        hasDuplicatedResources: duplicatedResources.length > 0,
+        duplicationNotes: duplicationNotes.trim() || null,
         accessories:
           createOrderDto.accessoryIds && createOrderDto.accessoryIds.length > 0
             ? {
                 connect: createOrderDto.accessoryIds.map((id) => ({ id })),
               }
             : undefined,
+        cargoItems: (() => {
+          // Handle cargoItems array if provided
+          if (createOrderDto.cargoItems && createOrderDto.cargoItems.length > 0) {
+            return {
+              create: createOrderDto.cargoItems.map((item, index) => ({
+                description: item.description || '',
+                weight: item.weight ? new Prisma.Decimal(item.weight) : null,
+                weightUom: item.weightUom || 'TON',
+                volume: item.volume ? new Prisma.Decimal(item.volume) : null,
+                value: item.value ? new Prisma.Decimal(item.value) : null,
+                sequence: index,
+              })),
+            };
+          }
+          // Fallback to single cargo for backward compatibility
+          if (createOrderDto.cargoDescription) {
+            return {
+              create: [
+                {
+                  description: createOrderDto.cargoDescription,
+                  weight: createOrderDto.weight ? new Prisma.Decimal(createOrderDto.weight) : null,
+                  weightUom: createOrderDto.weightUom || 'TON',
+                  volume: createOrderDto.volume ? new Prisma.Decimal(createOrderDto.volume) : null,
+                  value: createOrderDto.value ? new Prisma.Decimal(createOrderDto.value) : null,
+                  sequence: 0,
+                },
+              ],
+            };
+          }
+          return undefined;
+        })(),
         createdById: userId,
         updatedById: userId,
       },
       include: {
+        cargoItems: {
+          orderBy: { sequence: 'asc' },
+        },
         customer: {
           select: {
             id: true,
@@ -302,6 +470,16 @@ export class OrdersService {
         },
       },
     });
+
+    // Update vehicle and attachment status to 'OnTrip' since order is InProgress
+    if (order.vehicleId) {
+      await this.updateVehicleStatus(order.vehicleId, companyId);
+    }
+    if (order.attachmentId) {
+      await this.updateAttachmentStatus(order.attachmentId, companyId);
+    }
+
+    return order;
   }
 
   async findAll(page: number = 1, limit: number = 10, companyId: string) {
@@ -371,6 +549,9 @@ export class OrdersService {
               badgeNo: true,
               iqamaNumber: true,
             },
+          },
+          cargoItems: {
+            orderBy: { sequence: 'asc' },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -522,6 +703,9 @@ export class OrdersService {
               email: true,
             },
           },
+          cargoItems: {
+            orderBy: { sequence: 'asc' },
+          },
         },
       });
 
@@ -546,7 +730,7 @@ export class OrdersService {
     userId: string,
     companyId: string,
   ): Promise<Order> {
-    const order = await this.findOne(id, companyId);
+    const order = (await this.findOne(id, companyId)) as any;
 
     if (updateOrderDto.fromId && updateOrderDto.toId) {
       if (updateOrderDto.fromId === updateOrderDto.toId) {
@@ -600,6 +784,10 @@ export class OrdersService {
       }
     }
 
+    // Track duplicated resources (but allow update)
+    const duplicatedResources: string[] = [];
+    let duplicationNotes = order.duplicationNotes || '';
+
     if (updateOrderDto.vehicleId !== undefined) {
       if (updateOrderDto.vehicleId && updateOrderDto.vehicleId !== order.vehicleId) {
         const vehicle = await this.prisma.vehicle.findFirst({
@@ -608,6 +796,21 @@ export class OrdersService {
 
         if (!vehicle) {
           throw new NotFoundException(`Vehicle with ID '${updateOrderDto.vehicleId}' not found`);
+        }
+
+        // Check if vehicle is already assigned to another pending order
+        const pendingOrderWithVehicle = await this.prisma.order.findFirst({
+          where: {
+            companyId,
+            vehicleId: updateOrderDto.vehicleId,
+            status: 'InProgress',
+            id: { not: id }, // Exclude current order
+          },
+        });
+
+        if (pendingOrderWithVehicle) {
+          duplicatedResources.push(`Vehicle (${vehicle.name || vehicle.plateNumber || 'N/A'})`);
+          duplicationNotes += `Vehicle is already assigned to order ${pendingOrderWithVehicle.orderNo}. `;
         }
       }
     }
@@ -620,6 +823,45 @@ export class OrdersService {
 
         if (!driver) {
           throw new NotFoundException(`Driver with ID '${updateOrderDto.driverId}' not found`);
+        }
+
+        // Check if driver is already assigned to another pending order
+        const pendingOrderWithDriver = await this.prisma.order.findFirst({
+          where: {
+            companyId,
+            driverId: updateOrderDto.driverId,
+            status: 'InProgress',
+            id: { not: id }, // Exclude current order
+          },
+        });
+
+        if (pendingOrderWithDriver) {
+          duplicatedResources.push(`Driver (${driver.name || 'N/A'})`);
+          duplicationNotes += `Driver is already assigned to order ${pendingOrderWithDriver.orderNo}. `;
+        }
+      }
+    }
+
+    if (updateOrderDto.attachmentId !== undefined) {
+      if (updateOrderDto.attachmentId && updateOrderDto.attachmentId !== order.attachmentId) {
+        // Check if attachment is already assigned to another pending order (track but allow)
+        const pendingOrderWithAttachment = await this.prisma.order.findFirst({
+          where: {
+            companyId,
+            attachmentId: updateOrderDto.attachmentId,
+            status: 'InProgress',
+            id: { not: id }, // Exclude current order
+          },
+        });
+
+        if (pendingOrderWithAttachment) {
+          const attachment = await this.prisma.vehicle.findFirst({
+            where: { id: updateOrderDto.attachmentId, companyId },
+          });
+          duplicatedResources.push(
+            `Attachment (${attachment?.name || attachment?.plateNumber || 'N/A'})`,
+          );
+          duplicationNotes += `Attachment is already assigned to order ${pendingOrderWithAttachment.orderNo}. `;
         }
       }
     }
@@ -641,11 +883,35 @@ export class OrdersService {
             `One or more accessories not found or not of type Accessory: ${missingIds.join(', ')}`,
           );
         }
+
+        // Check for duplicated accessories
+        for (const accessory of accessories) {
+          const pendingOrderWithAccessory = await this.prisma.order.findFirst({
+            where: {
+              companyId,
+              status: 'InProgress',
+              id: { not: id },
+              accessories: {
+                some: {
+                  id: accessory.id,
+                },
+              },
+            },
+          });
+          if (pendingOrderWithAccessory) {
+            duplicatedResources.push(
+              `Accessory (${accessory.name || accessory.plateNumber || 'N/A'})`,
+            );
+            duplicationNotes += `Accessory is already assigned to order ${pendingOrderWithAccessory.orderNo}. `;
+          }
+        }
       }
     }
 
     const updateData: any = {
       updatedById: userId,
+      hasDuplicatedResources: duplicatedResources.length > 0 || order.hasDuplicatedResources,
+      duplicationNotes: duplicationNotes.trim() || null,
     };
 
     // Only include fields that are provided and not empty
@@ -847,6 +1113,27 @@ export class OrdersService {
           ? updateOrderDto.trailerNumber
           : null;
     }
+    if (updateOrderDto.temperature !== undefined) {
+      updateData.temperature =
+        updateOrderDto.temperature && updateOrderDto.temperature.trim()
+          ? updateOrderDto.temperature
+          : null;
+    }
+    if (updateOrderDto.podNumber !== undefined) {
+      updateData.podNumber =
+        updateOrderDto.podNumber && updateOrderDto.podNumber.trim()
+          ? updateOrderDto.podNumber
+          : null;
+    }
+    if (updateOrderDto.podSubmitted !== undefined) {
+      updateData.podSubmitted = updateOrderDto.podSubmitted;
+    }
+    if (updateOrderDto.podDocument !== undefined) {
+      updateData.podDocument =
+        updateOrderDto.podDocument && updateOrderDto.podDocument.trim()
+          ? updateOrderDto.podDocument
+          : null;
+    }
     if (updateOrderDto.accessoryIds !== undefined) {
       updateData.accessories = {
         set:
@@ -856,10 +1143,58 @@ export class OrdersService {
       };
     }
 
-    return this.prisma.order.update({
+    // Handle cargoItems update
+    if (updateOrderDto.cargoItems !== undefined) {
+      // Delete existing cargo items and create new ones
+      await this.prisma.cargoItem.deleteMany({
+        where: { orderId: id },
+      });
+
+      if (updateOrderDto.cargoItems.length > 0) {
+        updateData.cargoItems = {
+          create: updateOrderDto.cargoItems.map((item, index) => ({
+            description: item.description || '',
+            weight: item.weight ? new Prisma.Decimal(item.weight) : null,
+            weightUom: item.weightUom || 'TON',
+            volume: item.volume ? new Prisma.Decimal(item.volume) : null,
+            value: item.value ? new Prisma.Decimal(item.value) : null,
+            sequence: index,
+          })),
+        };
+      }
+    } else if (updateOrderDto.cargoDescription !== undefined) {
+      // Fallback: if cargoDescription is provided but cargoItems is not, create single cargo item
+      await this.prisma.cargoItem.deleteMany({
+        where: { orderId: id },
+      });
+
+      if (updateOrderDto.cargoDescription) {
+        updateData.cargoItems = {
+          create: [
+            {
+              description: updateOrderDto.cargoDescription,
+              weight: updateOrderDto.weight ? new Prisma.Decimal(updateOrderDto.weight) : null,
+              weightUom: updateOrderDto.weightUom || 'TON',
+              volume: updateOrderDto.volume ? new Prisma.Decimal(updateOrderDto.volume) : null,
+              value: updateOrderDto.value ? new Prisma.Decimal(updateOrderDto.value) : null,
+              sequence: 0,
+            },
+          ],
+        };
+      }
+    }
+
+    // Track old vehicle and attachment IDs before update
+    const oldVehicleId = order.vehicleId;
+    const oldAttachmentId = order.attachmentId;
+
+    const updatedOrder = await this.prisma.order.update({
       where: { id },
       data: updateData,
       include: {
+        cargoItems: {
+          orderBy: { sequence: 'asc' },
+        },
         customer: {
           select: {
             id: true,
@@ -911,13 +1246,54 @@ export class OrdersService {
         },
       },
     });
+
+    // Update vehicle status based on order changes
+    const newVehicleId = updatedOrder.vehicleId;
+    const newAttachmentId = updatedOrder.attachmentId;
+    const newStatus = updatedOrder.status;
+
+    // If vehicle changed, update old and new vehicle status
+    if (oldVehicleId !== newVehicleId) {
+      if (oldVehicleId) {
+        await this.updateVehicleStatus(oldVehicleId, companyId);
+      }
+      if (newVehicleId) {
+        await this.updateVehicleStatus(newVehicleId, companyId);
+      }
+    } else if (newVehicleId) {
+      // Vehicle didn't change, but status might have
+      await this.updateVehicleStatus(newVehicleId, companyId);
+    }
+
+    // If attachment changed, update old and new attachment status
+    if (oldAttachmentId !== newAttachmentId) {
+      if (oldAttachmentId) {
+        await this.updateAttachmentStatus(oldAttachmentId, companyId);
+      }
+      if (newAttachmentId) {
+        await this.updateAttachmentStatus(newAttachmentId, companyId);
+      }
+    } else if (newAttachmentId) {
+      // Attachment didn't change, but status might have
+      await this.updateAttachmentStatus(newAttachmentId, companyId);
+    }
+
+    return updatedOrder;
   }
 
   async remove(id: string, companyId: string): Promise<void> {
-    await this.findOne(id, companyId);
+    const order = await this.findOne(id, companyId);
 
     await this.prisma.order.delete({
       where: { id },
     });
+
+    // Update vehicle and attachment status after order deletion
+    if (order.vehicleId) {
+      await this.updateVehicleStatus(order.vehicleId, companyId);
+    }
+    if (order.attachmentId) {
+      await this.updateAttachmentStatus(order.attachmentId, companyId);
+    }
   }
 }

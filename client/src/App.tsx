@@ -22,6 +22,7 @@ import TripFormPage from '@/pages/ops/trip-form-page';
 import TripDetailsPage from '@/pages/ops/trip-details';
 import OrderReportPage from '@/pages/ops/order-report';
 import PrintWaybillPage from '@/pages/ops/print-waybill';
+import WaybillClosingPage from '@/pages/ops/waybill-closing-page';
 import VehiclesPage from '@/pages/fleet/vehicles';
 import VehicleFormPage from '@/pages/fleet/vehicle-form-page';
 import VehicleDetailsPage from '@/pages/fleet/vehicle-details';
@@ -140,6 +141,9 @@ function Router() {
             </Route>
             <Route path="/ops/orders/new">
               <ProtectedRoute component={OrderFormPage} />
+            </Route>
+            <Route path="/ops/orders/:id/waybill-closing">
+              <ProtectedRoute component={WaybillClosingPage} />
             </Route>
             <Route path="/ops/orders/:id/edit">
               <ProtectedRoute component={OrderFormPage} />

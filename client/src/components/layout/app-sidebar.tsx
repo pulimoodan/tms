@@ -28,9 +28,29 @@ import { ArrowRight01Icon, Logout01Icon, UserIcon } from '@hugeicons/core-free-i
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useAuth } from '@/context/auth-context';
 import { IconRenderer } from '@/lib/icons';
+import { usePermissions, type ModuleName } from '@/hooks/use-permissions';
+import { useMemo } from 'react';
 
-// Menu Configuration
-export const menuGroups = [
+// Menu Configuration with module mapping
+interface MenuItem {
+  title: string;
+  url: string;
+  badge: string | null;
+  module?: ModuleName; // Module name for permission checking
+}
+
+interface MenuGroupItem {
+  title: string;
+  icon: string;
+  items: MenuItem[];
+}
+
+interface MenuGroup {
+  label: string;
+  items: MenuGroupItem[];
+}
+
+const ALL_MENU_GROUPS: MenuGroup[] = [
   {
     label: 'Operations',
     items: [
@@ -38,7 +58,8 @@ export const menuGroups = [
         title: 'Operations',
         icon: 'DeliveryBox01Icon',
         items: [
-          { title: 'Orders/Waybills', url: '/ops/orders', badge: null },
+          { title: 'Orders/Waybills', url: '/ops/orders', badge: null, module: 'Orders' },
+          { title: 'Daily sales report', url: '/ops/orders/report', badge: null, module: 'Orders' },
           // { title: 'Trips', url: '/ops/trips', badge: 'M1' },
           // { title: 'AI Trip Planner', url: '/ops/ai-planner' },
           // { title: 'POD', url: '/ops/pod' },
@@ -46,65 +67,119 @@ export const menuGroups = [
       },
     ],
   },
-  // {
-  //   label: 'Fleet',
-  //   items: [
-  //     {
-  //       title: 'Fleet',
-  //       icon: 'ShippingTruck02Icon',
-  //       items: [
-  //         { title: 'Vehicles', url: '/fleet/vehicles', badge: null },
-  //         { title: 'Drivers', url: '/drivers/list', badge: null },
-  //       ],
-  //     },
-  //   ],
-  // },
-  // {
-  //   label: 'Sales',
-  //   items: [
-  //     {
-  //       title: 'Sales',
-  //       icon: 'UserGroupIcon',
-  //       items: [{ title: 'Customers', url: '/sales/customers', badge: null }],
-  //     },
-  //   ],
-  // },
-  // {
-  //   label: 'Purchase',
-  //   items: [
-  //     {
-  //       title: 'Purchase',
-  //       icon: 'ShoppingCartIcon',
-  //       items: [
-  //         { title: 'Purchase Request', url: '/purchase/purchase-requests', badge: null },
-  //         { title: 'RFQs', url: '/purchase/rfqs', badge: null },
-  //         { title: 'Purchase Orders', url: '/purchase/purchase-orders', badge: null },
-  //         { title: 'Purchase Bills', url: '/purchase/receipts', badge: null },
-  //         { title: 'Bidding (RFQ Comparison)', url: '/purchase/rfqs/comparison', badge: null },
-  //         { title: 'Vendors', url: '/purchase/vendors', badge: null },
-  //       ],
-  //     },
-  //   ],
-  // },
-  // {
-  //   label: 'Config',
-  //   items: [
-  //     {
-  //       title: 'Configuration',
-  //       icon: 'Settings01Icon',
-  //       items: [
-  //         { title: 'Products', url: '/purchase/products', badge: null },
-  //         { title: 'Taxes', url: '/purchase/taxes', badge: null },
-  //       ],
-  //     },
-  //   ],
-  // },
+  {
+    label: 'Fleet',
+    items: [
+      {
+        title: 'Fleet',
+        icon: 'ShippingTruck02Icon',
+        items: [
+          { title: 'Vehicles', url: '/fleet/vehicles', badge: null, module: 'Vehicles' },
+          { title: 'Drivers', url: '/drivers/list', badge: null, module: 'Drivers' },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Sales',
+    items: [
+      {
+        title: 'Sales',
+        icon: 'UserGroupIcon',
+        items: [
+          { title: 'Customers', url: '/sales/customers', badge: null, module: 'Customers' },
+          // { title: 'Contracts', url: '/sales/contracts', badge: null, module: 'Contracts' },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Configuration',
+    items: [
+      {
+        title: 'Configuration',
+        icon: 'Settings01Icon',
+        items: [
+          { title: 'Locations', url: '/config/locations', badge: null, module: 'Locations' },
+          // { title: 'Credit Terms', url: '/config/credit-terms', badge: null, module: 'CreditTerms' },
+          // { title: 'Vehicle Types', url: '/config/vehicle-types', badge: null, module: 'VehicleTypes' },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      {
+        title: 'Administration',
+        icon: 'ShieldIcon',
+        items: [
+          { title: 'Users', url: '/admin/users', badge: null, module: 'Users' },
+          { title: 'Roles', url: '/admin/roles', badge: null, module: 'Roles' },
+          { title: 'Company', url: '/admin/company', badge: null, module: 'Company' },
+        ],
+      },
+    ],
+  },
 ];
+
+// Export ALL_MENU_GROUPS for use in other components
+export { ALL_MENU_GROUPS };
 
 export function AppSidebar() {
   const [location] = useLocation();
   const { state } = useSidebar();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
+  const { hasReadPermission, getPermissions } = usePermissions();
+
+  // Don't render until auth is loaded
+  if (isLoading) {
+    return null;
+  }
+
+  // Filter menu groups based on Read permissions
+  const menuGroups = useMemo(() => {
+    const permissions = user?.role?.permissions || {};
+    
+    // Debug: Log permissions to console (can be removed in production)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('AppSidebar - User:', user);
+      console.log('AppSidebar - Permissions:', permissions);
+      console.log('AppSidebar - Permissions keys:', Object.keys(permissions));
+    }
+
+    // If no permissions exist, user needs to log out and log back in
+    // For now, show all items if permissions are missing (users logged in before permissions were added)
+    // TODO: Remove this fallback once all users have logged out and back in
+    const hasPermissions = permissions && Object.keys(permissions).length > 0;
+    
+    if (!hasPermissions && user) {
+      console.warn('⚠️ No permissions found for user. Please log out and log back in to refresh permissions.');
+      // Temporarily show all menu items if permissions are missing
+      // Remove this fallback after users have logged out/in
+      return ALL_MENU_GROUPS;
+    }
+
+    return ALL_MENU_GROUPS.map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) => ({
+          ...item,
+          items: item.items.filter((subItem) => {
+            // If no module specified, show item (e.g., Company)
+            if (!subItem.module) return true;
+            // Check Read permission for the module directly from permissions object
+            const modulePermissions = permissions[subItem.module];
+            const hasPermission = modulePermissions?.Read === true;
+            if (process.env.NODE_ENV === 'development' && !hasPermission) {
+              console.log(`❌ No Read permission for module: ${subItem.module}`, modulePermissions);
+            }
+            return hasPermission;
+          }),
+        }))
+        .filter((item) => item.items.length > 0), // Remove groups with no visible items
+    })).filter((group) => group.items.length > 0); // Remove groups with no visible items
+  }, [user?.role?.permissions, user]);
 
   return (
     <Sidebar

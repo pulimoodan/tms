@@ -1,7 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsEnum, IsNumber, IsString, IsOptional, Min, IsArray } from 'class-validator';
+import { IsUUID, IsEnum, IsNumber, IsString, IsOptional, Min, IsArray, IsBoolean, ValidateNested } from 'class-validator';
 import { OrderStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { CargoItemDto } from './create-order.dto';
 
 export class UpdateOrderDto {
   @ApiPropertyOptional({ example: 'uuid-here', description: 'Customer ID', format: 'uuid' })
@@ -85,10 +86,17 @@ export class UpdateOrderDto {
   @IsString()
   tripNumber?: string;
 
-  @ApiPropertyOptional({ example: 'General Cargo', description: 'Cargo description' })
+  @ApiPropertyOptional({ example: 'General Cargo', description: 'Cargo description (deprecated, use cargoItems)' })
   @IsOptional()
   @IsString()
   cargoDescription?: string;
+
+  @ApiPropertyOptional({ type: [CargoItemDto], description: 'Array of cargo items' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CargoItemDto)
+  cargoItems?: CargoItemDto[];
 
   @ApiPropertyOptional({ example: 'SEAL123456', description: 'Seal number' })
   @IsOptional()
@@ -280,4 +288,24 @@ export class UpdateOrderDto {
   @IsOptional()
   @IsString()
   trailerNumber?: string;
+
+  @ApiPropertyOptional({ example: 'POD-12345', description: 'POD number' })
+  @IsOptional()
+  @IsString()
+  podNumber?: string;
+
+  @ApiPropertyOptional({ example: true, description: 'POD submitted status', default: false })
+  @IsOptional()
+  @IsBoolean()
+  podSubmitted?: boolean;
+
+  @ApiPropertyOptional({ example: '/uploads/pod-document.pdf', description: 'POD document file URL' })
+  @IsOptional()
+  @IsString()
+  podDocument?: string;
+
+  @ApiPropertyOptional({ example: '-18', description: 'Temperature in Celsius (for Reefer vehicles)' })
+  @IsOptional()
+  @IsString()
+  temperature?: string;
 }

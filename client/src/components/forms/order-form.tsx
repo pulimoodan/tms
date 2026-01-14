@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +43,8 @@ import {
   Wrench01Icon,
   Loading01Icon,
   File01Icon,
+  PlusSignIcon,
+  Delete01Icon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Badge } from '@/components/ui/badge';
@@ -59,18 +62,28 @@ import { MultiStepForm, type Step } from './multi-step-form';
 import { usePaginatedVehicles } from '@/hooks/use-paginated-vehicles';
 import { PaginatedCommand } from '@/components/ui/paginated-command';
 
+const cargoItemSchema = z.object({
+  description: z.string().min(1, 'Cargo description is required'),
+  weight: z.string().min(1, 'Weight is required'),
+  weightUom: z.string().optional(),
+  volume: z.string().optional(),
+  value: z.string().optional(),
+});
+
 const orderFormSchema = z.object({
   customerId: z.string().min(1, 'Customer is required'),
   contractId: z.string().optional(),
   fromId: z.string().min(1, 'From location is required'),
   toId: z.string().min(1, 'To location is required'),
-  weight: z.string().min(1, 'Weight is required'),
-  volume: z.string().min(1, 'Volume is required'),
-  value: z.string().min(1, 'Value is required'),
+  // Keep old fields for backward compatibility (optional)
+  weight: z.string().optional(),
+  volume: z.string().optional(),
+  value: z.string().optional(),
   vehicleId: z.string().min(1, 'Vehicle is required'),
-  attachmentId: z.string().min(1, 'Attachment is required'),
+  attachmentId: z.string().optional(),
   driverId: z.string().min(1, 'Driver is required'),
-  cargoDescription: z.string().min(1, 'Cargo description is required'),
+  cargoDescription: z.string().optional(), // Made optional, use cargoItems instead
+  cargoItems: z.array(cargoItemSchema).min(1, 'At least one cargo item is required'),
   startKms: z.string().min(1, 'Start KMs is required'),
   etaDate: z.string().optional(),
   etaTime: z.string().optional(),
@@ -95,6 +108,7 @@ const orderFormSchema = z.object({
   weightUom: z.string().optional(),
   tareWeight: z.string().optional(),
   trailerNumber: z.string().optional(),
+  temperature: z.string().optional(),
   accessoryIds: z.array(z.string()).optional(),
 });
 
@@ -120,7 +134,7 @@ const STEPS: Step[] = [
     title: 'Cargo Details',
     icon: PackageIcon,
     description: 'Cargo information and tracking',
-    fields: ['weight', 'volume', 'value', 'cargoDescription'],
+    fields: ['cargoItems'],
   },
   {
     number: 3,
@@ -146,6 +160,7 @@ export function OrderForm({
 }: OrderFormProps) {
   const { toast } = useToast();
   const { setEntityLabel } = useBreadcrumb();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [maxStepReached, setMaxStepReached] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -160,8 +175,9 @@ export function OrderForm({
   const [existingOrder, setExistingOrder] = useState<any>(null);
 
   // Paginated vehicle hooks
-  const vehiclesData = usePaginatedVehicles({ type: 'Vehicle' });
-  const attachmentsData = usePaginatedVehicles({ type: 'Attachment' });
+  // Pass orderId when editing to exclude currently assigned resources from "in use" check
+  const vehiclesData = usePaginatedVehicles({ type: 'Vehicle', excludeOrderId: orderId });
+  const attachmentsData = usePaginatedVehicles({ type: 'Attachment', excludeOrderId: orderId });
   const accessoriesData = usePaginatedVehicles({ type: 'Accessory' });
   const [vehicleOpen, setVehicleOpen] = useState(false);
   const [attachmentOpen, setAttachmentOpen] = useState(false);
@@ -185,6 +201,7 @@ export function OrderForm({
       attachmentId: '',
       driverId: '',
       cargoDescription: '',
+      cargoItems: [{ description: '', weight: '', weightUom: 'TON', volume: '', value: '' }],
       startKms: '',
       etaDate: '',
       etaTime: '',
@@ -209,8 +226,14 @@ export function OrderForm({
       weightUom: '',
       tareWeight: '',
       trailerNumber: '',
+      temperature: '',
       accessoryIds: [],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'cargoItems',
   });
 
   useEffect(() => {
@@ -221,7 +244,7 @@ export function OrderForm({
           fetchCustomers(),
           fetchContracts(),
           fetchLocations(),
-          fetchDrivers(),
+          fetchDrivers(orderId), // Pass orderId to exclude currently assigned driver from "in use" check
         ]);
         setCustomers(customersData);
         setAllContracts(contractsData);
@@ -245,6 +268,36 @@ export function OrderForm({
               attachmentId: orderData.attachmentId || '',
               driverId: orderData.driverId || '',
               cargoDescription: orderData.cargoDescription || '',
+              cargoItems: (() => {
+                // Ensure we always have at least one cargo item
+                if (
+                  orderData.cargoItems &&
+                  Array.isArray(orderData.cargoItems) &&
+                  orderData.cargoItems.length > 0
+                ) {
+                  return orderData.cargoItems.map((item: any) => ({
+                    description: item.description || '',
+                    weight: item.weight ? item.weight.toString() : '',
+                    weightUom: item.weightUom || 'TON',
+                    volume: item.volume ? item.volume.toString() : '',
+                    value: item.value ? item.value.toString() : '',
+                  }));
+                }
+                // Fallback to single cargo from old fields
+                if (orderData.cargoDescription) {
+                  return [
+                    {
+                      description: orderData.cargoDescription || '',
+                      weight: orderData.weight ? orderData.weight.toString() : '',
+                      weightUom: orderData.weightUom || 'TON',
+                      volume: orderData.volume ? orderData.volume.toString() : '',
+                      value: orderData.value ? orderData.value.toString() : '',
+                    },
+                  ];
+                }
+                // Default empty item
+                return [{ description: '', weight: '', weightUom: 'TON', volume: '', value: '' }];
+              })(),
               startKms: orderData.startKms?.toString() || '',
               etaDate: orderData.eta ? new Date(orderData.eta).toISOString().slice(0, 10) : '',
               etaTime: orderData.eta ? new Date(orderData.eta).toTimeString().slice(0, 5) : '',
@@ -281,6 +334,7 @@ export function OrderForm({
               weightUom: orderData.weightUom || '',
               tareWeight: orderData.tareWeight?.toString() || '',
               trailerNumber: orderData.trailerNumber || '',
+              temperature: orderData.temperature || '',
               accessoryIds: (orderData.accessories || []).map((a: any) => a.id) || [],
             });
 
@@ -337,7 +391,7 @@ export function OrderForm({
       const filtered = allContracts.filter((c: any) => c.customerId === selectedCustomerId);
       setContracts(filtered);
 
-      async function loadCustomerRoutes() {
+      const loadCustomerRoutes = async () => {
         try {
           const routes = await fetchCustomerRoutes(selectedCustomerId);
           setCustomerRoutes(routes);
@@ -345,13 +399,25 @@ export function OrderForm({
           console.error('Failed to load customer routes:', error);
           setCustomerRoutes([]);
         }
-      }
+      };
       loadCustomerRoutes();
     } else {
       setContracts([]);
       setCustomerRoutes([]);
     }
   }, [selectedCustomerId, allContracts]);
+
+  // Clear attachmentId when vehicle with built-in trailer/reefer is selected
+  const vehicleId = form.watch('vehicleId');
+  useEffect(() => {
+    if (vehicleId) {
+      const selectedVehicle = vehiclesData.vehicles.find((v: any) => v.id === vehicleId);
+      const hasBuiltIn = selectedVehicle?.builtInTrailer || selectedVehicle?.builtInReefer;
+      if (hasBuiltIn && form.getValues('attachmentId')) {
+        form.setValue('attachmentId', '');
+      }
+    }
+  }, [vehicleId, vehiclesData.vehicles]);
 
   const handleCustomerChange = (customerId: string) => {
     setSelectedCustomerId(customerId);
@@ -381,11 +447,31 @@ export function OrderForm({
     e.stopPropagation();
     const currentStepData = STEPS[step - 1];
     if (!currentStepData?.fields) return;
-    const isValid = await form.trigger(currentStepData.fields as any);
-    if (isValid && step < STEPS.length) {
-      const nextStep = step + 1;
-      setStep(nextStep);
-      setMaxStepReached((prev) => Math.max(prev, nextStep));
+
+    // For step 3 (Assignment), conditionally validate attachmentId
+    if (step === 3) {
+      const vehicleId = form.getValues('vehicleId');
+      const selectedVehicle = vehiclesData.vehicles.find((v: any) => v.id === vehicleId);
+      const hasBuiltIn = selectedVehicle?.builtInTrailer || selectedVehicle?.builtInReefer;
+
+      // If vehicle has built-in trailer/reefer, attachmentId is not required
+      const fieldsToValidate = hasBuiltIn
+        ? currentStepData.fields.filter((field) => field !== 'attachmentId')
+        : currentStepData.fields;
+
+      const isValid = await form.trigger(fieldsToValidate as any);
+      if (isValid && step < STEPS.length) {
+        const nextStep = step + 1;
+        setStep(nextStep);
+        setMaxStepReached((prev) => Math.max(prev, nextStep));
+      }
+    } else {
+      const isValid = await form.trigger(currentStepData.fields as any);
+      if (isValid && step < STEPS.length) {
+        const nextStep = step + 1;
+        setStep(nextStep);
+        setMaxStepReached((prev) => Math.max(prev, nextStep));
+      }
     }
   };
 
@@ -410,12 +496,43 @@ export function OrderForm({
         fromId: values.fromId,
         toId: values.toId,
         contractId: values.contractId && values.contractId.trim() ? values.contractId : undefined,
-        weight: parseFloat(values.weight),
-        volume: parseFloat(values.volume),
-        value: parseFloat(values.value),
         vehicleId: values.vehicleId,
         driverId: values.driverId,
-        cargoDescription: values.cargoDescription.trim(),
+        // Send cargoItems array
+        cargoItems: values.cargoItems.map((item) => ({
+          description: item.description.trim(),
+          weight: item.weight && item.weight.trim() ? parseFloat(item.weight) : undefined,
+          weightUom: 'TON', // Always Ton
+          volume: item.volume && item.volume.trim() ? parseFloat(item.volume) : undefined,
+          value: item.value && item.value.trim() ? parseFloat(item.value) : undefined,
+        })),
+        // Keep old fields for backward compatibility (fallback if cargoItems is empty)
+        cargoDescription:
+          values.cargoItems.length > 0 && values.cargoItems[0].description
+            ? values.cargoItems[0].description
+            : values.cargoDescription?.trim() || undefined,
+        weight:
+          values.cargoItems.length > 0 && values.cargoItems[0].weight
+            ? parseFloat(values.cargoItems[0].weight)
+            : values.weight
+              ? parseFloat(values.weight)
+              : undefined,
+        volume:
+          values.cargoItems.length > 0 && values.cargoItems[0].volume
+            ? values.cargoItems[0].volume && values.cargoItems[0].volume.trim()
+              ? parseFloat(values.cargoItems[0].volume)
+              : undefined
+            : values.volume && values.volume.trim()
+              ? parseFloat(values.volume)
+              : undefined,
+        value:
+          values.cargoItems.length > 0 && values.cargoItems[0].value
+            ? values.cargoItems[0].value && values.cargoItems[0].value.trim()
+              ? parseFloat(values.cargoItems[0].value)
+              : undefined
+            : values.value && values.value.trim()
+              ? parseFloat(values.value)
+              : undefined,
         startKms: values.startKms ? parseInt(values.startKms) : undefined,
         eta:
           values.etaDate && values.etaTime
@@ -470,11 +587,16 @@ export function OrderForm({
         tareWeight: values.tareWeight ? parseFloat(values.tareWeight) : undefined,
         trailerNumber:
           values.trailerNumber && values.trailerNumber.trim() ? values.trailerNumber : undefined,
+        temperature:
+          values.temperature && values.temperature.trim() ? values.temperature : undefined,
         accessoryIds:
           values.accessoryIds && values.accessoryIds.length > 0 ? values.accessoryIds : undefined,
       };
 
-      payload.attachmentId = values.attachmentId.trim();
+      // Only include attachmentId if it's provided
+      if (values.attachmentId && values.attachmentId.trim()) {
+        payload.attachmentId = values.attachmentId.trim();
+      }
 
       if ('status' in payload) {
         delete payload.status;
@@ -493,13 +615,19 @@ export function OrderForm({
           title: 'Order Updated',
           description: 'Successfully updated order',
         });
+        // Invalidate queries for both the list and the specific order
+        await queryClient.invalidateQueries({ queryKey: ['orders'] });
+        await queryClient.invalidateQueries({ queryKey: ['order', orderId] });
       } else {
         await createOrder(payload);
         toast({
           title: 'Order Created',
           description: 'Successfully created order',
         });
+        // Invalidate orders query to refresh the list
+        await queryClient.invalidateQueries({ queryKey: ['orders'] });
       }
+
       if (onComplete) onComplete();
     } catch (error: any) {
       toast({
@@ -751,79 +879,110 @@ export function OrderForm({
 
           {step === 2 && (
             <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="cargoDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cargo Description *</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Describe the cargo" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="weight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Weight (kg) *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="e.g., 1000"
-                          {...field}
-                          data-testid="input-weight"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="volume"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Volume (m³) *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="e.g., 50"
-                          {...field}
-                          data-testid="input-volume"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="value"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Value (SAR) *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="e.g., 50000"
-                          {...field}
-                          data-testid="input-value"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Cargo Items</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    append({ description: '', weight: '', weightUom: 'TON', volume: '', value: '' })
+                  }
+                >
+                  <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
+                  Add Cargo Item
+                </Button>
               </div>
+
+              {fields && fields.length > 0 ? (
+                fields.map((field, index) => (
+                  <div key={field.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Cargo Item {index + 1}</h4>
+                      {fields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => remove(index)}
+                        >
+                          <HugeiconsIcon icon={Delete01Icon} className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name={`cargoItems.${index}.description`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cargo Description *</FormLabel>
+                          <FormControl>
+                            <Input type="text" placeholder="e.g., General cargo" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name={`cargoItems.${index}.weight`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Weight (Ton) *</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="e.g., 1000"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`cargoItems.${index}.volume`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Volume (m³)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" placeholder="e.g., 50" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`cargoItems.${index}.value`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Value (SAR)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="e.g., 50000"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-4">
+                  No cargo items. Click "Add Cargo Item" to add one.
+                </div>
+              )}
             </div>
           )}
 
@@ -876,9 +1035,16 @@ export function OrderForm({
                                 emptyMessage="No vehicles found."
                                 renderItem={(vehicle) => (
                                   <div className="flex flex-col">
-                                    <span>
-                                      {vehicle.name || 'Unnamed'} - {vehicle.plateNumber || 'N/A'}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span>
+                                        {vehicle.name || 'Unnamed'} - {vehicle.plateNumber || 'N/A'}
+                                      </span>
+                                      {vehicle.isInUse && (
+                                        <Badge className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 text-xs">
+                                          In Use
+                                        </Badge>
+                                      )}
+                                    </div>
                                     {(vehicle.doorNo || vehicle.asset) && (
                                       <span className="text-xs text-muted-foreground">
                                         {[vehicle.doorNo, vehicle.asset]
@@ -909,6 +1075,11 @@ export function OrderForm({
                           )}
                         </div>
                         <FormMessage />
+                        {selectedVehicle?.isInUse && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                            ⚠️ This vehicle is already assigned to an in-progress waybill.
+                          </p>
+                        )}
                       </FormItem>
                     );
                   }}
@@ -927,89 +1098,197 @@ export function OrderForm({
                   )}
                 />
               </div>
-              <FormField
-                control={form.control}
-                name="attachmentId"
-                render={({ field }) => {
-                  const selectedAttachment = attachmentsData.vehicles.find(
-                    (v: any) => v.id === field.value,
-                  );
-                  return (
-                    <FormItem>
-                      <FormLabel>Attachment *</FormLabel>
-                      <div className="flex gap-2">
-                        <Popover open={attachmentOpen} onOpenChange={setAttachmentOpen}>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                className="flex-1 justify-between"
-                                data-testid="select-attachment"
-                              >
-                                {selectedAttachment
-                                  ? `${selectedAttachment.name || 'Unnamed'} - ${selectedAttachment.chassisNo || 'N/A'}`
-                                  : 'Select attachment'}
-                                <HugeiconsIcon
-                                  icon={ShippingTruck02Icon}
-                                  className="ml-2 h-4 w-4 shrink-0 opacity-50"
-                                />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[400px] p-0" align="start">
-                            <PaginatedCommand
-                              items={attachmentsData.vehicles}
-                              isLoading={attachmentsData.isLoading}
-                              hasMore={attachmentsData.hasMore}
-                              onLoadMore={attachmentsData.loadMore}
-                              onSelect={(attachment) => {
-                                field.onChange(attachment.id);
-                                setAttachmentOpen(false);
-                              }}
-                              searchValue={attachmentsData.searchQuery}
-                              onSearchChange={attachmentsData.setSearchQuery}
-                              placeholder="Search attachments by door no, asset no, name, or chassis no..."
-                              emptyMessage="No attachments found."
-                              renderItem={(attachment) => (
-                                <div className="flex flex-col">
-                                  <span>
-                                    {attachment.name || 'Unnamed'} - {attachment.chassisNo || 'N/A'}
-                                  </span>
-                                  {(attachment.doorNo || attachment.asset) && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {[attachment.doorNo, attachment.asset]
-                                        .filter(Boolean)
-                                        .join(' / ')}
-                                    </span>
+              {(() => {
+                const selectedVehicleId = form.watch('vehicleId');
+                const selectedVehicle = vehiclesData.vehicles.find(
+                  (v: any) => v.id === selectedVehicleId,
+                );
+                const hasBuiltIn =
+                  selectedVehicle?.builtInTrailer || selectedVehicle?.builtInReefer;
+
+                // Hide attachment field if vehicle has built-in trailer or reefer
+                if (hasBuiltIn) {
+                  // Clear attachmentId when hiding the field
+                  if (form.getValues('attachmentId')) {
+                    form.setValue('attachmentId', '');
+                  }
+                  return null;
+                }
+
+                return (
+                  <FormField
+                    control={form.control}
+                    name="attachmentId"
+                    render={({ field }) => {
+                      const selectedAttachment = attachmentsData.vehicles.find(
+                        (v: any) => v.id === field.value,
+                      );
+                      return (
+                        <FormItem>
+                          <FormLabel>Attachment *</FormLabel>
+                          <div className="flex gap-2">
+                            <Popover open={attachmentOpen} onOpenChange={setAttachmentOpen}>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="flex-1 justify-between"
+                                    data-testid="select-attachment"
+                                  >
+                                    {selectedAttachment
+                                      ? `${selectedAttachment.name || 'Unnamed'} - ${selectedAttachment.chassisNo || 'N/A'}`
+                                      : 'Select attachment'}
+                                    <HugeiconsIcon
+                                      icon={ShippingTruck02Icon}
+                                      className="ml-2 h-4 w-4 shrink-0 opacity-50"
+                                    />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[400px] p-0" align="start">
+                                <PaginatedCommand
+                                  items={attachmentsData.vehicles}
+                                  isLoading={attachmentsData.isLoading}
+                                  hasMore={attachmentsData.hasMore}
+                                  onLoadMore={attachmentsData.loadMore}
+                                  onSelect={(attachment) => {
+                                    field.onChange(attachment.id);
+                                    setAttachmentOpen(false);
+                                  }}
+                                  searchValue={attachmentsData.searchQuery}
+                                  onSearchChange={attachmentsData.setSearchQuery}
+                                  placeholder="Search attachments by door no, asset no, name, or chassis no..."
+                                  emptyMessage="No attachments found."
+                                  renderItem={(attachment) => (
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center gap-2">
+                                        <span>
+                                          {attachment.name || 'Unnamed'} -{' '}
+                                          {attachment.chassisNo || 'N/A'}
+                                        </span>
+                                        {attachment.isInUse && (
+                                          <Badge className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 text-xs">
+                                            In Use
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {(attachment.doorNo || attachment.asset) && (
+                                        <span className="text-xs text-muted-foreground">
+                                          {[attachment.doorNo, attachment.asset]
+                                            .filter(Boolean)
+                                            .join(' / ')}
+                                        </span>
+                                      )}
+                                    </div>
                                   )}
-                                </div>
-                              )}
-                              getItemValue={(attachment) =>
-                                `${attachment.doorNo || ''} ${attachment.asset || ''} ${attachment.name || ''} ${attachment.chassisNo || ''}`
-                              }
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        {field.value && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              field.onChange('');
-                              form.setValue(field.name as any, '');
-                            }}
-                          >
-                            ×
-                          </Button>
+                                  getItemValue={(attachment) =>
+                                    `${attachment.doorNo || ''} ${attachment.asset || ''} ${attachment.name || ''} ${attachment.chassisNo || ''}`
+                                  }
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            {field.value && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => {
+                                  field.onChange('');
+                                  form.setValue(field.name as any, '');
+                                }}
+                              >
+                                ×
+                              </Button>
+                            )}
+                          </div>
+                          <FormMessage />
+                          {selectedAttachment?.isInUse && (
+                            <p className="text-xs text-orange-600 dark:text-orange-400">
+                              ⚠️ This attachment is already assigned to an in-progress waybill.
+                            </p>
+                          )}
+                        </FormItem>
+                      );
+                    }}
+                  />
+                );
+              })()}
+
+              {/* Container Number and Temperature - shown when vehicle has built-in trailer/reefer OR attachment is selected */}
+              {(() => {
+                const selectedVehicleId = form.watch('vehicleId');
+                const selectedAttachmentId = form.watch('attachmentId');
+                const selectedVehicle = vehiclesData.vehicles.find(
+                  (v: any) => v.id === selectedVehicleId,
+                );
+                const selectedAttachment = attachmentsData.vehicles.find(
+                  (v: any) => v.id === selectedAttachmentId,
+                );
+
+                const hasBuiltInTrailer = selectedVehicle?.builtInTrailer;
+                const hasBuiltInReefer = selectedVehicle?.builtInReefer;
+                const hasAttachment = !!selectedAttachmentId;
+                // Check trailerCategory instead of category for reefer detection
+                const isReeferAttachment = selectedAttachment?.trailerCategory === 'Reefer';
+                const isReeferVehicle = selectedVehicle?.trailerCategory === 'Reefer';
+
+                // Show container number if: vehicle has built-in trailer OR attachment is selected
+                const showContainerNumber = hasBuiltInTrailer || hasAttachment;
+                // Show temperature if: vehicle has built-in reefer OR vehicle trailerCategory is Reefer OR (attachment is selected AND its trailerCategory is Reefer)
+                const showTemperature =
+                  hasBuiltInReefer || isReeferVehicle || (hasAttachment && isReeferAttachment);
+
+                if (!showContainerNumber && !showTemperature) {
+                  return null;
+                }
+
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {showContainerNumber && (
+                      <FormField
+                        control={form.control}
+                        name="containerNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Container Number</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter container number" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              {hasBuiltInTrailer
+                                ? 'Container number for the built-in trailer'
+                                : 'Container number for the attachment/trailer'}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
                         )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
+                      />
+                    )}
+                    {showTemperature && (
+                      <FormField
+                        control={form.control}
+                        name="temperature"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Temperature (°C)</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.1" placeholder="e.g., -18" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              {hasBuiltInReefer
+                                ? 'Required temperature in Celsius for built-in reefer'
+                                : 'Required temperature in Celsius for Reefer attachment/trailer'}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
+
               <FormField
                 control={form.control}
                 name="accessoryIds"
@@ -1070,10 +1349,17 @@ export function OrderForm({
                                       {isSelected && <span className="text-white text-xs">✓</span>}
                                     </div>
                                     <div className="flex flex-col flex-1">
-                                      <span>
-                                        {accessory.name || 'Unnamed'} -{' '}
-                                        {accessory.plateNumber || 'N/A'}
-                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <span>
+                                          {accessory.name || 'Unnamed'} -{' '}
+                                          {accessory.plateNumber || 'N/A'}
+                                        </span>
+                                        {accessory.isInUse && (
+                                          <Badge className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 text-xs">
+                                            In Use
+                                          </Badge>
+                                        )}
+                                      </div>
                                       {(accessory.doorNo || accessory.asset) && (
                                         <span className="text-xs text-muted-foreground">
                                           {[accessory.doorNo, accessory.asset]
@@ -1127,6 +1413,12 @@ export function OrderForm({
                       )}
                       <FormDescription>Optional - Select multiple accessories</FormDescription>
                       <FormMessage />
+                      {selectedAccessories.some((a: any) => a.isInUse) && (
+                        <p className="text-xs text-orange-600 dark:text-orange-400">
+                          ⚠️ One or more selected accessories are already assigned to in-progress
+                          waybills.
+                        </p>
+                      )}
                     </FormItem>
                   );
                 }}
@@ -1154,7 +1446,7 @@ export function OrderForm({
                                     <>
                                       <span>{selectedDriver.name}</span>
                                       {selectedDriver.ownershipType === 'Outsourced' && (
-                                        <Badge variant="destructive" className="text-xs">
+                                        <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20 text-xs">
                                           Outsourced
                                         </Badge>
                                       )}
@@ -1194,8 +1486,13 @@ export function OrderForm({
                                         <div className="flex items-center gap-2">
                                           <span>{driver.name}</span>
                                           {driver.ownershipType === 'Outsourced' && (
-                                            <Badge variant="destructive" className="text-xs">
+                                            <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20 text-xs">
                                               Outsourced
+                                            </Badge>
+                                          )}
+                                          {driver.isInUse && (
+                                            <Badge className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 text-xs">
+                                              In Use
                                             </Badge>
                                           )}
                                         </div>
@@ -1233,6 +1530,11 @@ export function OrderForm({
                         )}
                       </div>
                       <FormMessage />
+                      {selectedDriver?.isInUse && (
+                        <p className="text-xs text-orange-600 dark:text-orange-400">
+                          ⚠️ This driver is already assigned to an in-progress waybill.
+                        </p>
+                      )}
                     </FormItem>
                   );
                 }}

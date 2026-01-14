@@ -61,6 +61,22 @@ export class AuthService {
 
     const { passwordHash, ...userWithoutPassword } = user;
 
+    // Format permissions for frontend
+    const permissions: Record<string, Record<string, boolean>> = {};
+    if (user.role.permissions && Array.isArray(user.role.permissions)) {
+      user.role.permissions.forEach((perm: any) => {
+        if (perm.module && perm.permissions) {
+          permissions[perm.module] = {
+            Read: perm.permissions.includes('Read'),
+            Write: perm.permissions.includes('Write'),
+            Update: perm.permissions.includes('Update'),
+            Delete: perm.permissions.includes('Delete'),
+            Export: perm.permissions.includes('Export'),
+          };
+        }
+      });
+    }
+
     return {
       accessToken,
       expiresIn: expirationDate.toISOString(),
@@ -71,6 +87,7 @@ export class AuthService {
         role: {
           id: user.role.id,
           name: user.role.name,
+          permissions,
         },
       },
     };

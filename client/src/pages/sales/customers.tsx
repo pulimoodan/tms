@@ -18,7 +18,6 @@ import {
   ArrowDown01Icon,
   MoreVerticalIcon,
   PlusSignIcon,
-  Download01Icon,
   FilterIcon,
   GridIcon,
   TableIcon,
@@ -54,9 +53,11 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { usePermissions } from '@/hooks/use-permissions';
 
 function CustomerActions({ customerId }: { customerId: string }) {
   const [, setLocation] = useLocation();
+  const { hasUpdatePermission, hasDeletePermission } = usePermissions();
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
@@ -76,11 +77,15 @@ function CustomerActions({ customerId }: { customerId: string }) {
           <DropdownMenuItem onClick={() => setLocation(`/sales/customers/${customerId}`)}>
             View details
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setLocation(`/sales/customers/${customerId}/edit`)}>
-            Edit customer
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive">Delete customer</DropdownMenuItem>
+          {hasUpdatePermission('Customers') && (
+            <DropdownMenuItem onClick={() => setLocation(`/sales/customers/${customerId}/edit`)}>
+              Edit customer
+            </DropdownMenuItem>
+          )}
+          {hasUpdatePermission('Customers') && hasDeletePermission('Customers') && <DropdownMenuSeparator />}
+          {hasDeletePermission('Customers') && (
+            <DropdownMenuItem className="text-destructive">Delete customer</DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -239,6 +244,7 @@ export default function CustomersPage() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = useState('');
+  const { hasWritePermission } = usePermissions();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['customers'],
@@ -304,14 +310,12 @@ export default function CustomersPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <HugeiconsIcon icon={Download01Icon} className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button onClick={openNewCustomerForm} data-testid="button-new-customer">
-            <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
-            Add Customer
-          </Button>
+          {hasWritePermission('Customers') && (
+            <Button onClick={openNewCustomerForm} data-testid="button-new-customer">
+              <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
+              Add Customer
+            </Button>
+          )}
         </div>
       </div>
 

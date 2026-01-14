@@ -52,6 +52,10 @@ export default function LoginPage() {
           role: data.result.user.role,
         };
 
+        // Debug: Log permissions structure
+        console.log('Login response - user role:', user.role);
+        console.log('Login response - permissions:', user.role?.permissions);
+
         if (token) {
           login(token, user);
           toast({

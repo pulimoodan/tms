@@ -2,14 +2,22 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '@/lib/api';
 
-interface User {
+export interface UserPermissions {
+  Read: boolean;
+  Write: boolean;
+  Update: boolean;
+  Delete: boolean;
+  Export: boolean;
+}
+
+export interface User {
   id: string;
   email: string;
   username: string;
   role?: {
     id: string;
     name: string;
-    permissions: any;
+    permissions?: Record<string, UserPermissions>;
   };
 }
 

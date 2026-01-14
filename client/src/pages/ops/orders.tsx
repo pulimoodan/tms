@@ -33,7 +33,6 @@ import {
   Calendar01Icon,
   Search01Icon,
   DeliveryBox01Icon,
-  File01Icon,
 } from '@hugeicons/core-free-icons';
 import { PageTitle } from '@/components/ui/page-title';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -61,6 +60,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/use-permissions';
 
 type Order = {
   id: string;
@@ -95,7 +95,9 @@ type Order = {
   };
   weight?: number;
   volume?: number;
-  status: 'Pending' | 'Dispatched' | 'Delivered' | 'Invoiced';
+  status: 'InProgress' | 'Closed' | 'ClosedAccident' | 'ClosedBreakdown';
+  hasDuplicatedResources?: boolean;
+  duplicationNotes?: string;
   tripNumber?: string;
   cargoDescription?: string;
   createdAt: string;
@@ -103,28 +105,30 @@ type Order = {
 
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case 'Pending':
-      return (
-        <Badge className="bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20">
-          Pending
-        </Badge>
-      );
-    case 'Dispatched':
+    case 'InProgress':
+    case 'Pending': // Fallback for old data that might not have been migrated
       return (
         <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20">
-          Dispatched
+          In Progress
         </Badge>
       );
-    case 'Delivered':
+    case 'Closed':
+    case 'Delivered': // Fallback for old data that might not have been migrated
       return (
         <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
-          Delivered
+          Closed
         </Badge>
       );
-    case 'Invoiced':
+    case 'ClosedAccident':
       return (
-        <Badge className="bg-primary/10 text-primary dark:text-primary border-primary/20">
-          Invoiced
+        <Badge className="bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20">
+          Closed (Accident)
+        </Badge>
+      );
+    case 'ClosedBreakdown':
+      return (
+        <Badge className="bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20">
+          Closed (Breakdown)
         </Badge>
       );
     default:
@@ -136,6 +140,7 @@ function OrderActions({ orderId }: { orderId: string }) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { hasUpdatePermission, hasDeletePermission } = usePermissions();
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -176,23 +181,29 @@ function OrderActions({ orderId }: { orderId: string }) {
             <HugeiconsIcon icon={EyeIcon} className="mr-2 h-4 w-4" />
             View details
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setLocation(`/ops/orders/${orderId}/edit`)}>
-            <HugeiconsIcon icon={Edit01Icon} className="mr-2 h-4 w-4" />
-            Edit order
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive"
-            onClick={() => {
-              if (confirm('Are you sure you want to delete this order?')) {
-                deleteMutation.mutate();
-              }
-            }}
-            disabled={deleteMutation.isPending}
-          >
-            <HugeiconsIcon icon={Delete01Icon} className="mr-2 h-4 w-4" />
-            Delete order
-          </DropdownMenuItem>
+          {hasUpdatePermission('Orders') && (
+            <DropdownMenuItem onClick={() => setLocation(`/ops/orders/${orderId}/edit`)}>
+              <HugeiconsIcon icon={Edit01Icon} className="mr-2 h-4 w-4" />
+              Edit order
+            </DropdownMenuItem>
+          )}
+          {hasUpdatePermission('Orders') && hasDeletePermission('Orders') && (
+            <DropdownMenuSeparator />
+          )}
+          {hasDeletePermission('Orders') && (
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => {
+                if (confirm('Are you sure you want to delete this order?')) {
+                  deleteMutation.mutate();
+                }
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              <HugeiconsIcon icon={Delete01Icon} className="mr-2 h-4 w-4" />
+              Delete order
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -218,8 +229,17 @@ const columns: ColumnDef<Order>[] = [
       return (
         <div className="flex items-center gap-2">
           <HugeiconsIcon icon={PackageIcon} className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="font-medium font-mono">{order.orderNo}</div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <div className="font-medium font-mono">{order.orderNo}</div>
+              {order.hasDuplicatedResources && (
+                <HugeiconsIcon
+                  icon={AlertCircleIcon}
+                  className="h-4 w-4 text-orange-600 dark:text-orange-400"
+                  title={order.duplicationNotes || 'This waybill has duplicated resources'}
+                />
+              )}
+            </div>
             {order.customer && (
               <div className="text-xs text-muted-foreground">{order.customer.name}</div>
             )}
@@ -261,32 +281,6 @@ const columns: ColumnDef<Order>[] = [
             {to.code && <div className="text-xs text-muted-foreground font-mono">{to.code}</div>}
           </div>
         </div>
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      );
-    },
-  },
-  {
-    accessorKey: 'contract',
-    header: 'Contract',
-    cell: ({ row }) => {
-      const contract = row.original.contract;
-      return contract ? (
-        <div>
-          <div className="font-medium">{contract.contractNumber}</div>
-        </div>
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      );
-    },
-  },
-  {
-    accessorKey: 'tripNumber',
-    header: 'Trip Number',
-    cell: ({ row }) => {
-      const tripNumber = row.original.tripNumber;
-      return tripNumber ? (
-        <span className="font-mono text-sm">{tripNumber}</span>
       ) : (
         <span className="text-muted-foreground">—</span>
       );
@@ -335,14 +329,6 @@ const columns: ColumnDef<Order>[] = [
     },
   },
   {
-    accessorKey: 'weight',
-    header: 'Weight',
-    cell: ({ row }) => {
-      const weight = row.original.weight;
-      return weight ? <span>{weight} kg</span> : <span className="text-muted-foreground">—</span>;
-    },
-  },
-  {
     accessorKey: 'status',
     header: ({ column }) => {
       return (
@@ -355,7 +341,21 @@ const columns: ColumnDef<Order>[] = [
         </Button>
       );
     },
-    cell: ({ row }) => getStatusBadge(row.original.status),
+    cell: ({ row }) => {
+      const order = row.original;
+      return (
+        <div className="flex items-center gap-2">
+          {getStatusBadge(order.status)}
+          {order.hasDuplicatedResources && (
+            <HugeiconsIcon
+              icon={AlertCircleIcon}
+              className="h-4 w-4 text-orange-600 dark:text-orange-400"
+              title={order.duplicationNotes || 'This waybill has duplicated resources'}
+            />
+          )}
+        </div>
+      );
+    },
   },
   {
     id: 'actions',
@@ -370,6 +370,7 @@ export default function OrdersPage() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const { hasWritePermission } = usePermissions();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['orders'],
@@ -380,6 +381,8 @@ export default function OrdersPage() {
       }
       return [];
     },
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 
   const table = useReactTable({
@@ -401,10 +404,8 @@ export default function OrdersPage() {
         order.customer?.name?.toLowerCase().includes(search) ||
         order.from?.name?.toLowerCase().includes(search) ||
         order.to?.name?.toLowerCase().includes(search) ||
-        order.contract?.contractNumber?.toLowerCase().includes(search) ||
         order.vehicle?.plateNumber?.toLowerCase().includes(search) ||
         order.driver?.name?.toLowerCase().includes(search) ||
-        order.tripNumber?.toLowerCase().includes(search) ||
         order.cargoDescription?.toLowerCase().includes(search) ||
         false
       );
@@ -448,14 +449,12 @@ export default function OrdersPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setLocation('/ops/orders/report')}>
-            <HugeiconsIcon icon={File01Icon} className="mr-2 h-4 w-4" />
-            Report
-          </Button>
-          <Button variant="default" onClick={() => setLocation('/ops/orders/new')}>
-            <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
-            New Order
-          </Button>
+          {hasWritePermission('Orders') && (
+            <Button variant="default" onClick={() => setLocation('/ops/orders/new')}>
+              <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
+              New Order
+            </Button>
+          )}
         </div>
       </div>
 
@@ -594,7 +593,19 @@ export default function OrdersPage() {
                                 </p>
                               )}
                             </div>
-                            {getStatusBadge(order.status)}
+                            <div className="flex items-center gap-2">
+                              {getStatusBadge(order.status)}
+                              {order.hasDuplicatedResources && (
+                                <HugeiconsIcon
+                                  icon={AlertCircleIcon}
+                                  className="h-4 w-4 text-orange-600 dark:text-orange-400"
+                                  title={
+                                    order.duplicationNotes ||
+                                    'This waybill has duplicated resources'
+                                  }
+                                />
+                              )}
+                            </div>
                           </div>
 
                           {(order.from || order.to) && (
@@ -613,14 +624,6 @@ export default function OrdersPage() {
                           )}
 
                           <div className="space-y-2 text-sm border-t pt-3">
-                            {order.tripNumber && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-muted-foreground text-xs">Trip Number</span>
-                                <span className="font-mono text-xs font-medium">
-                                  {order.tripNumber}
-                                </span>
-                              </div>
-                            )}
                             {order.vehicle && (
                               <div className="flex justify-between items-start">
                                 <span className="text-muted-foreground text-xs">Vehicle</span>
@@ -641,12 +644,6 @@ export default function OrdersPage() {
                                 <span className="font-medium text-xs text-right max-w-[120px] truncate">
                                   {order.cargoDescription}
                                 </span>
-                              </div>
-                            )}
-                            {order.weight && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-muted-foreground text-xs">Weight</span>
-                                <span className="font-medium text-xs">{order.weight} kg</span>
                               </div>
                             )}
                           </div>

@@ -11,16 +11,22 @@ interface Vehicle {
   chassisNo?: string;
   category?: string;
   plateNumberArabic?: string;
+  builtInTrailer?: boolean;
+  builtInReefer?: boolean;
+  trailerCategory?: string;
+  isInUse?: boolean;
 }
 
 interface UsePaginatedVehiclesOptions {
   type?: 'Vehicle' | 'Attachment' | 'Equipment' | 'Accessory';
   pageSize?: number;
+  excludeOrderId?: string; // Exclude vehicles/attachments assigned to pending orders, except this order (for edit mode)
 }
 
 export function usePaginatedVehicles({
   type,
   pageSize = 20,
+  excludeOrderId,
 }: UsePaginatedVehiclesOptions = {}) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +60,10 @@ export function usePaginatedVehicles({
 
         if (search && search.trim()) {
           params.append('search', search.trim());
+        }
+
+        if (excludeOrderId) {
+          params.append('excludeOrderId', excludeOrderId);
         }
 
         const response = await api.get(`/vehicles?${params.toString()}`, {

@@ -52,13 +52,14 @@ export class VehiclesController {
     @Query() paginationDto: PaginationDto,
     @CurrentUser() currentUser: any,
   ): Promise<ApiListResponseDto<any>> {
-    const { page = 1, limit = 10, type, search } = paginationDto;
+    const { page = 1, limit = 10, type, search, excludeOrderId } = paginationDto as any;
     const result = await this.vehiclesService.findAll(
       page,
       limit,
       currentUser.companyId,
       type,
       search,
+      excludeOrderId,
     );
     return {
       success: true,

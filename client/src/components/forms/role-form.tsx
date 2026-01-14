@@ -49,6 +49,7 @@ const MODULES = [
   { id: 'VehicleTypes', label: 'Vehicle Types', category: 'Configuration' },
   { id: 'Users', label: 'Users', category: 'Administration' },
   { id: 'Roles', label: 'Roles', category: 'Administration' },
+  { id: 'Company', label: 'Company', category: 'Administration' },
 ] as const;
 
 const CATEGORIES = Array.from(new Set(MODULES.map((m) => m.category)));

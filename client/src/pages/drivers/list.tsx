@@ -60,6 +60,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/use-permissions';
 
 type Driver = {
   id: string;
@@ -114,6 +115,7 @@ function DriverActions({ driverId }: { driverId: string }) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { hasUpdatePermission, hasDeletePermission } = usePermissions();
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -154,23 +156,27 @@ function DriverActions({ driverId }: { driverId: string }) {
             <HugeiconsIcon icon={EyeIcon} className="mr-2 h-4 w-4" />
             View details
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setLocation(`/drivers/list/${driverId}/edit`)}>
-            <HugeiconsIcon icon={Edit01Icon} className="mr-2 h-4 w-4" />
-            Edit driver
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive"
-            onClick={() => {
-              if (confirm('Are you sure you want to delete this driver?')) {
-                deleteMutation.mutate();
-              }
-            }}
-            disabled={deleteMutation.isPending}
-          >
-            <HugeiconsIcon icon={Delete01Icon} className="mr-2 h-4 w-4" />
-            Delete driver
-          </DropdownMenuItem>
+          {hasUpdatePermission('Drivers') && (
+            <DropdownMenuItem onClick={() => setLocation(`/drivers/list/${driverId}/edit`)}>
+              <HugeiconsIcon icon={Edit01Icon} className="mr-2 h-4 w-4" />
+              Edit driver
+            </DropdownMenuItem>
+          )}
+          {hasUpdatePermission('Drivers') && hasDeletePermission('Drivers') && <DropdownMenuSeparator />}
+          {hasDeletePermission('Drivers') && (
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => {
+                if (confirm('Are you sure you want to delete this driver?')) {
+                  deleteMutation.mutate();
+                }
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              <HugeiconsIcon icon={Delete01Icon} className="mr-2 h-4 w-4" />
+              Delete driver
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -309,6 +315,7 @@ export default function DriversPage() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const { hasWritePermission } = usePermissions();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['drivers'],
@@ -382,10 +389,12 @@ export default function DriversPage() {
           <p className="text-muted-foreground">Manage your fleet drivers and assignments.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setLocation('/drivers/list/new')}>
-            <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
-            Add Driver
-          </Button>
+          {hasWritePermission('Drivers') && (
+            <Button variant="outline" onClick={() => setLocation('/drivers/list/new')}>
+              <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
+              Add Driver
+            </Button>
+          )}
         </div>
       </div>
 

@@ -24,12 +24,15 @@ import {
   Settings01Icon,
   File01Icon,
   Loading01Icon,
+  Image01Icon,
+  Delete01Icon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useToast } from '@/hooks/use-toast';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
-import { fetchVehicle, createVehicle, updateVehicle } from '@/lib/api-helpers';
+import { fetchVehicle, createVehicle, updateVehicle, uploadDocument } from '@/lib/api-helpers';
 import { MultiStepForm, type Step } from './multi-step-form';
+import { Button } from '@/components/ui/button';
 
 const VEHICLE_TYPES = ['Vehicle', 'Attachment', 'Equipment'] as const;
 
@@ -41,6 +44,7 @@ const VEHICLE_CATEGORIES = [
   'BoomTruck',
   'DieselTanker',
   'MiniVan',
+  'MiniVanFifteenSeater',
   'Pickup',
   'SUV',
   'FlatBedTrailer',
@@ -53,6 +57,8 @@ const VEHICLE_CATEGORIES = [
   'BackhoLoader',
   'RoughTerrainCrane',
   'SkidLoader',
+  'Trailer',
+  'OneCarCarrier',
 ] as const;
 
 const getCategoryLabel = (category: string) => {
@@ -64,6 +70,7 @@ const getCategoryLabel = (category: string) => {
     BoomTruck: 'Boom Truck',
     DieselTanker: 'Diesel Tanker',
     MiniVan: 'Mini Van',
+    MiniVanFifteenSeater: 'Mini Van 15 Seater',
     Pickup: 'Pickup',
     SUV: 'SUV',
     FlatBedTrailer: 'Flat Bed Trailer',
@@ -76,6 +83,8 @@ const getCategoryLabel = (category: string) => {
     BackhoLoader: 'Backho Loader',
     RoughTerrainCrane: 'Rough Terrain Crane',
     SkidLoader: 'Skid Loader',
+    Trailer: 'Trailer',
+    OneCarCarrier: 'One Car Carrier',
   };
   return labels[category] || category;
 };
@@ -99,6 +108,13 @@ const vehicleFormSchema = z.object({
   model: z.string().optional(),
   engineSerialNo: z.string().optional(),
   status: z.enum(['Active', 'InMaintenance', 'Inactive', 'OnTrip']).optional(),
+  capacity: z.string().optional(),
+  tractorCategory: z.string().optional(),
+  trailerCategory: z.string().optional(),
+  agent: z.string().optional(),
+  builtInTrailer: z.boolean().optional(),
+  builtInReefer: z.boolean().optional(),
+  image: z.string().optional(),
 });
 
 type VehicleFormValues = z.infer<typeof vehicleFormSchema>;
@@ -116,14 +132,14 @@ const STEPS: Step[] = [
     title: 'Basic Info',
     icon: ShippingTruck02Icon,
     description: 'Vehicle name, type and category',
-    fields: ['name', 'type', 'category'],
+    fields: ['name', 'type', 'category', 'image'],
   },
   {
     number: 2,
     title: 'Identifiers',
     icon: File01Icon,
     description: 'Asset, door, plate and chassis numbers',
-    fields: ['asset', 'doorNo', 'plateNumber', 'chassisNo', 'sequenceNo'],
+    fields: ['asset', 'doorNo', 'plateNumber', 'plateNumberArabic', 'chassisNo', 'sequenceNo'],
   },
   {
     number: 3,
@@ -139,6 +155,12 @@ const STEPS: Step[] = [
       'make',
       'model',
       'engineSerialNo',
+      'capacity',
+      'tractorCategory',
+      'trailerCategory',
+      'agent',
+      'builtInTrailer',
+      'builtInReefer',
       'status',
     ],
   },
@@ -156,6 +178,7 @@ export function VehicleForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingVehicle, setExistingVehicle] = useState<any>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleFormSchema),
@@ -178,6 +201,13 @@ export function VehicleForm({
       model: '',
       engineSerialNo: '',
       status: 'Active',
+      capacity: '',
+      tractorCategory: '',
+      trailerCategory: '',
+      agent: '',
+      builtInTrailer: false,
+      builtInReefer: false,
+      image: '',
     },
   });
 
@@ -208,6 +238,13 @@ export function VehicleForm({
               model: vehicleData.model || '',
               engineSerialNo: vehicleData.engineSerialNo || '',
               status: vehicleData.status || 'Active',
+              capacity: vehicleData.capacity || '',
+              tractorCategory: vehicleData.tractorCategory || '',
+              trailerCategory: vehicleData.trailerCategory || '',
+              agent: vehicleData.agent || '',
+              builtInTrailer: vehicleData.builtInTrailer ?? false,
+              builtInReefer: vehicleData.builtInReefer ?? false,
+              image: vehicleData.image || '',
             });
             if (vehicleData.name) {
               setEntityLabel(vehicleData.name);
@@ -252,6 +289,61 @@ export function VehicleForm({
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid file type',
+        description: 'Please upload a JPEG, PNG, or WebP image.',
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: 'destructive',
+        title: 'File too large',
+        description: 'Please upload an image smaller than 5MB.',
+      });
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const url = await uploadDocument(file);
+      form.setValue('image', url);
+      toast({
+        title: 'Image uploaded',
+        description: 'Vehicle image has been uploaded successfully.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Upload failed',
+        description: error.message || 'Failed to upload image. Please try again.',
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const removeImage = () => {
+    form.setValue('image', '');
+  };
+
+  const getImageUrl = (url: string | undefined) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    return `${API_BASE_URL}${url}`;
+  };
+
   async function onSubmit(values: VehicleFormValues) {
     setIsSubmitting(true);
     try {
@@ -276,6 +368,13 @@ export function VehicleForm({
       if (values.make) payload.make = values.make;
       if (values.model) payload.model = values.model;
       if (values.engineSerialNo) payload.engineSerialNo = values.engineSerialNo;
+      if (values.capacity) payload.capacity = values.capacity;
+      if (values.tractorCategory) payload.tractorCategory = values.tractorCategory;
+      if (values.trailerCategory) payload.trailerCategory = values.trailerCategory;
+      if (values.agent) payload.agent = values.agent;
+      if (values.builtInTrailer !== undefined) payload.builtInTrailer = values.builtInTrailer;
+      if (values.builtInReefer !== undefined) payload.builtInReefer = values.builtInReefer;
+      if (values.image) payload.image = values.image;
 
       if (isEditMode) {
         if (!vehicleId) throw new Error('Vehicle ID is required');
@@ -394,6 +493,64 @@ export function VehicleForm({
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="image"
+                render={({ field }) => {
+                  const hasImage = !!field.value;
+                  return (
+                    <FormItem>
+                      <FormLabel>Vehicle Image</FormLabel>
+                      <FormControl>
+                        <div className="space-y-2">
+                          {hasImage ? (
+                            <div className="space-y-2">
+                              <div className="relative w-full h-48 border rounded-md overflow-hidden">
+                                <img
+                                  src={getImageUrl(field.value)}
+                                  alt="Vehicle"
+                                  className="w-full h-full object-cover"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={removeImage}
+                                  className="absolute top-2 right-2"
+                                >
+                                  <HugeiconsIcon icon={Delete01Icon} className="h-4 w-4 mr-1" />
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="file"
+                                accept="image/jpeg,image/jpg,image/png,image/webp"
+                                onChange={handleImageUpload}
+                                disabled={isUploadingImage}
+                                className="flex-1"
+                              />
+                              {isUploadingImage && (
+                                <HugeiconsIcon
+                                  icon={Loading01Icon}
+                                  className="h-4 w-4 animate-spin"
+                                />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Upload a vehicle image (JPEG, PNG, or WebP, max 5MB)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
             </div>
           )}
 
@@ -428,42 +585,40 @@ export function VehicleForm({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="plateNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Plate Number (English)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="e.g., ABC-1234"
-                          {...field}
-                          data-testid="input-plate-number"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="plateNumberArabic"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Plate Number (Arabic)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="رقم اللوحة"
-                          {...field}
-                          data-testid="input-plate-number-ar"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="plateNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plate Number (English)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., ABC-1234"
+                        {...field}
+                        data-testid="input-plate-number"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="plateNumberArabic"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plate Number (Arabic)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="رقم اللوحة"
+                        {...field}
+                        data-testid="input-plate-number-ar"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -645,6 +800,123 @@ export function VehicleForm({
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="capacity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Capacity</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., 25 TON"
+                          {...field}
+                          data-testid="input-capacity"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="agent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Agent / Dealer</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., Omatra Group"
+                          {...field}
+                          data-testid="input-agent"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="tractorCategory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tractor Category</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., 4X2, 6X2, 6X4"
+                          {...field}
+                          data-testid="input-tractor-category"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="trailerCategory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Trailer Category</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., Flat Bed, Low Bed, Reefer"
+                          {...field}
+                          data-testid="input-trailer-category"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="builtInTrailer"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Built-in Trailer</FormLabel>
+                        <FormDescription>Vehicle has a built-in trailer</FormDescription>
+                      </div>
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value || false}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="builtInReefer"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Built-in Reefer</FormLabel>
+                        <FormDescription>Vehicle has a built-in reefer unit</FormDescription>
+                      </div>
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value || false}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

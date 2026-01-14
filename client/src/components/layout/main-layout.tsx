@@ -1,4 +1,7 @@
-import { AppSidebar, menuGroups } from './app-sidebar';
+import { AppSidebar, ALL_MENU_GROUPS } from './app-sidebar';
+import { usePermissions } from '@/hooks/use-permissions';
+import { useAuth } from '@/context/auth-context';
+import { useMemo } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -155,7 +158,28 @@ function generateBreadcrumbs(pathname: string, entityLabel: string | null): Brea
 export function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const { entityLabel } = useBreadcrumb();
+  const { user } = useAuth();
   const breadcrumbs = generateBreadcrumbs(location, entityLabel);
+
+  // Filter menu groups for SearchCommand based on Read permissions
+  const menuGroups = useMemo(() => {
+    const permissions = user?.role?.permissions || {};
+    
+    return ALL_MENU_GROUPS.map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) => ({
+          ...item,
+          items: item.items.filter((subItem) => {
+            if (!subItem.module) return true;
+            // Check Read permission directly from permissions object
+            const modulePermissions = permissions[subItem.module];
+            return modulePermissions?.Read === true;
+          }),
+        }))
+        .filter((item) => item.items.length > 0),
+    })).filter((group) => group.items.length > 0);
+  }, [user?.role?.permissions]);
 
   return (
     <SidebarProvider>
@@ -191,7 +215,7 @@ export function Layout({ children }: LayoutProps) {
             <ModeToggle />
           </div>
         </header>
-        <main className="flex-1 p-4 overflow-auto bg-background">{children}</main>
+        <main className="flex-1 p-4 overflow-auto bg-background min-w-0 max-w-full">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

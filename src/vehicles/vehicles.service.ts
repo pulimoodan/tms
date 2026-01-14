@@ -53,6 +53,12 @@ export class VehiclesService {
         make: createVehicleDto.make || null,
         model: createVehicleDto.model || null,
         engineSerialNo: createVehicleDto.engineSerialNo || null,
+        capacity: createVehicleDto.capacity || null,
+        tractorCategory: createVehicleDto.tractorCategory || null,
+        trailerCategory: createVehicleDto.trailerCategory || null,
+        agent: createVehicleDto.agent || null,
+        builtInTrailer: createVehicleDto.builtInTrailer ?? false,
+        builtInReefer: createVehicleDto.builtInReefer ?? false,
         status: createVehicleDto.status || 'Active',
         createdById: userId,
         updatedById: userId,
@@ -66,10 +72,43 @@ export class VehiclesService {
     companyId: string,
     type?: VehicleType,
     search?: string,
+    excludeOrderId?: string, // Exclude vehicles assigned to pending orders, except this order (for edit mode)
   ) {
     const skip = (page - 1) * limit;
 
-    const where: any = { companyId };
+    // Find vehicles/attachments/accessories assigned to pending orders (for marking as in use, not filtering)
+    const pendingOrders = await this.prisma.order.findMany({
+      where: {
+        companyId,
+        status: 'InProgress',
+        ...(excludeOrderId ? { id: { not: excludeOrderId } } : {}),
+      },
+      select: {
+        vehicleId: true,
+        attachmentId: true,
+        accessories: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    const inUseVehicleIds = pendingOrders
+      .map((order) => order.vehicleId)
+      .filter((id): id is string => id !== null);
+    const inUseAttachmentIds = pendingOrders
+      .map((order) => order.attachmentId)
+      .filter((id): id is string => id !== null);
+    const inUseAccessoryIds = pendingOrders
+      .flatMap((order) => order.accessories.map((accessory) => accessory.id))
+      .filter((id): id is string => id !== null);
+
+    const where: any = {
+      companyId,
+      // Don't exclude - allow all vehicles to be shown, but mark them as in use
+    };
+
     if (type) {
       where.type = type;
     }
@@ -96,8 +135,15 @@ export class VehiclesService {
       this.prisma.vehicle.count({ where }),
     ]);
 
+    // Mark vehicles/attachments/accessories as in use
+    const allInUseIds = [...inUseVehicleIds, ...inUseAttachmentIds, ...inUseAccessoryIds];
+    const vehiclesWithInUseFlag = vehicles.map((vehicle) => ({
+      ...vehicle,
+      isInUse: allInUseIds.includes(vehicle.id),
+    }));
+
     return {
-      results: vehicles,
+      results: vehiclesWithInUseFlag,
       pagination: {
         page,
         limit,
@@ -173,6 +219,12 @@ export class VehiclesService {
     if (updateVehicleDto.make !== undefined) updateData.make = updateVehicleDto.make || null;
     if (updateVehicleDto.model !== undefined) updateData.model = updateVehicleDto.model || null;
     if (updateVehicleDto.engineSerialNo !== undefined) updateData.engineSerialNo = updateVehicleDto.engineSerialNo || null;
+    if (updateVehicleDto.capacity !== undefined) updateData.capacity = updateVehicleDto.capacity || null;
+    if (updateVehicleDto.tractorCategory !== undefined) updateData.tractorCategory = updateVehicleDto.tractorCategory || null;
+    if (updateVehicleDto.trailerCategory !== undefined) updateData.trailerCategory = updateVehicleDto.trailerCategory || null;
+    if (updateVehicleDto.agent !== undefined) updateData.agent = updateVehicleDto.agent || null;
+    if (updateVehicleDto.builtInTrailer !== undefined) updateData.builtInTrailer = updateVehicleDto.builtInTrailer;
+    if (updateVehicleDto.builtInReefer !== undefined) updateData.builtInReefer = updateVehicleDto.builtInReefer;
     if (updateVehicleDto.status !== undefined) updateData.status = updateVehicleDto.status;
 
     return this.prisma.vehicle.update({

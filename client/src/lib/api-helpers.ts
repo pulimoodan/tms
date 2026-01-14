@@ -45,8 +45,12 @@ export async function fetchVehicles(type?: string) {
   return response.data.success && Array.isArray(response.data.results) ? response.data.results : [];
 }
 
-export async function fetchDrivers() {
-  const response = await api.get('/drivers?page=1&limit=100');
+export async function fetchDrivers(excludeOrderId?: string) {
+  const params = new URLSearchParams({ page: '1', limit: '100' });
+  if (excludeOrderId) {
+    params.append('excludeOrderId', excludeOrderId);
+  }
+  const response = await api.get(`/drivers?${params.toString()}`);
   return response.data.success && Array.isArray(response.data.results) ? response.data.results : [];
 }
 
@@ -190,7 +194,7 @@ export async function fetchOrder(id: string) {
       vehicleId: order.vehicleId || '',
       attachmentId: order.attachmentId || '',
       driverId: order.driverId || '',
-      status: order.status || 'Pending',
+      status: order.status || 'InProgress',
       orderNo: order.orderNo || '',
       cargoDescription: order.cargoDescription || '',
       accessories: order.accessories || [],
@@ -428,6 +432,7 @@ export async function fetchRole(id: string) {
       'VehicleTypes',
       'Users',
       'Roles',
+      'Company',
     ];
 
     MODULES.forEach((module) => {

@@ -51,8 +51,13 @@ export class DriversController {
     @Query() paginationDto: PaginationDto,
     @CurrentUser() currentUser: any,
   ): Promise<ApiListResponseDto<any>> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const result = await this.driversService.findAll(page, limit, currentUser.companyId);
+    const { page = 1, limit = 10, excludeOrderId } = paginationDto as any;
+    const result = await this.driversService.findAll(
+      page,
+      limit,
+      currentUser.companyId,
+      excludeOrderId,
+    );
     return {
       success: true,
       results: result.results,

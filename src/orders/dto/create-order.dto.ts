@@ -9,9 +9,43 @@ import {
   Min,
   IsArray,
   ArrayMinSize,
+  ValidateNested,
 } from 'class-validator';
 import { OrderStatus } from '@prisma/client';
 import { Type, Transform } from 'class-transformer';
+
+export class CargoItemDto {
+  @ApiPropertyOptional({ example: 'General Cargo', description: 'Cargo description' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional({ example: 1000, description: 'Weight' })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  weight?: number;
+
+  @ApiPropertyOptional({ enum: ['KG', 'TON'], example: 'TON', description: 'Weight unit of measure' })
+  @IsOptional()
+  @IsString()
+  weightUom?: string;
+
+  @ApiPropertyOptional({ example: 50.5, description: 'Volume in cubic meters' })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  volume?: number;
+
+  @ApiPropertyOptional({ example: 50000, description: 'Value in SAR' })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  value?: number;
+}
 
 export class CreateOrderDto {
   @ApiProperty({ example: 'uuid-here', description: 'Customer ID', format: 'uuid' })
@@ -92,10 +126,17 @@ export class CreateOrderDto {
   @IsString()
   tripNumber?: string;
 
-  @ApiPropertyOptional({ example: 'General Cargo', description: 'Cargo description' })
+  @ApiPropertyOptional({ example: 'General Cargo', description: 'Cargo description (deprecated, use cargoItems)' })
   @IsOptional()
   @IsString()
   cargoDescription?: string;
+
+  @ApiPropertyOptional({ type: [CargoItemDto], description: 'Array of cargo items' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CargoItemDto)
+  cargoItems?: CargoItemDto[];
 
   @ApiPropertyOptional({ example: 'SEAL123456', description: 'Seal number' })
   @IsOptional()
@@ -286,4 +327,9 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   trailerNumber?: string;
+
+  @ApiPropertyOptional({ example: '-18', description: 'Temperature in Celsius (for Reefer vehicles)' })
+  @IsOptional()
+  @IsString()
+  temperature?: string;
 }

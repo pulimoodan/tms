@@ -46,21 +46,53 @@ export class DriversService {
     });
   }
 
-  async findAll(page: number = 1, limit: number = 10, companyId: string) {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    companyId: string,
+    excludeOrderId?: string, // Exclude drivers assigned to pending orders, except this order (for edit mode)
+  ) {
     const skip = (page - 1) * limit;
+
+    // Find drivers assigned to pending orders
+    const pendingOrders = await this.prisma.order.findMany({
+      where: {
+        companyId,
+        status: 'InProgress',
+        ...(excludeOrderId ? { id: { not: excludeOrderId } } : {}),
+      },
+      select: {
+        driverId: true,
+      },
+    });
+
+    const inUseDriverIds = pendingOrders
+      .map((order) => order.driverId)
+      .filter((id): id is string => id !== null);
+
+    const where: any = {
+      companyId,
+      // Don't exclude - allow all drivers to be shown, but mark them as in use
+    };
 
     const [drivers, total] = await Promise.all([
       this.prisma.driver.findMany({
-        where: { companyId },
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.driver.count({ where: { companyId } }),
+      this.prisma.driver.count({ where }),
     ]);
 
+    // Mark drivers as in use
+    const driversWithInUseFlag = drivers.map((driver) => ({
+      ...driver,
+      isInUse: inUseDriverIds.includes(driver.id),
+    }));
+
     return {
-      results: drivers,
+      results: driversWithInUseFlag,
       pagination: {
         page,
         limit,

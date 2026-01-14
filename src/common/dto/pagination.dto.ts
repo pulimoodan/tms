@@ -28,4 +28,12 @@ export class PaginationDto {
   @IsOptional()
   @Type(() => String)
   search?: string;
+
+  @ApiPropertyOptional({
+    description: 'Exclude resources assigned to pending orders, except this order (for edit mode)',
+    format: 'uuid',
+  })
+  @IsOptional()
+  @Type(() => String)
+  excludeOrderId?: string;
 }

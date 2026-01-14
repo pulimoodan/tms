@@ -123,5 +123,37 @@ export class UpdateVehicleDto {
   })
   @IsEnum(VehicleStatus)
   status?: VehicleStatus;
+
+  @ApiPropertyOptional({ example: '25 TON', description: 'Vehicle capacity' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  capacity?: string;
+
+  @ApiPropertyOptional({ example: '4X2', description: 'Tractor category', enum: ['4X2', '6X2', '6X4', '8X4', '8X6'] })
+  @IsString()
+  @IsOptional()
+  @MaxLength(10)
+  tractorCategory?: string;
+
+  @ApiPropertyOptional({ example: 'Flat Bed', description: 'Trailer category', enum: ['Reefer', 'Flat Bed', 'Low Bed', 'Curtain Side'] })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  trailerCategory?: string;
+
+  @ApiPropertyOptional({ example: 'Omatra Group', description: 'Local agent/dealer name' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  agent?: string;
+
+  @ApiPropertyOptional({ example: false, description: 'Built-in trailer', default: false })
+  @IsOptional()
+  builtInTrailer?: boolean;
+
+  @ApiPropertyOptional({ example: false, description: 'Built-in reefer', default: false })
+  @IsOptional()
+  builtInReefer?: boolean;
 }
 

@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "pod_number" TEXT,
+ADD COLUMN IF NOT EXISTS "pod_submitted" BOOLEAN NOT NULL DEFAULT false;
+

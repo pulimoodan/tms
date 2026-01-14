@@ -246,7 +246,7 @@ export default function PrintWaybillPage() {
             <tr>
               <th
                 colSpan={4}
-                className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-bold text-left"
+                className="border border-gray-400 px-3 py-1.5 bg-blue-200 font-bold text-left print:bg-blue-200"
               >
                 Shipment Details
               </th>
@@ -265,26 +265,34 @@ export default function PrintWaybillPage() {
             </tr>
             <tr>
               <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                Cargo Type:
+                Cargo Description:
               </td>
-              <td className="border border-gray-400 px-4 py-2">General</td>
+              <td className="border border-gray-400 px-4 py-2">{order.cargoDescription || ''}</td>
               <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                 Temperature Required:
               </td>
-              <td className="border border-gray-400 px-4 py-2"></td>
-            </tr>
-            <tr>
-              <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                Seal:
-              </td>
-              <td className="border border-gray-400 px-4 py-2"></td>
-              <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                Customer Order / Ref #:
-              </td>
               <td className="border border-gray-400 px-4 py-2">
-                {order.bookingNumber || order.croNumber || ''}
+                {order.temperature ? `${order.temperature}°C` : ''}
               </td>
             </tr>
+            {((order.containerNumber || (order.podNumber || order.podDocument))) && (
+              <tr>
+                <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
+                  Container Number:
+                </td>
+                <td className="border border-gray-400 px-4 py-2">
+                  {order.containerNumber || ''}
+                </td>
+                <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
+                  POD:
+                </td>
+                <td className="border border-gray-400 px-4 py-2">
+                  {order.podNumber ? `POD #: ${order.podNumber}` : ''}
+                  {order.podNumber && order.podDocument ? ' - ' : ''}
+                  {order.podDocument ? 'POD Submitted' : order.podNumber ? 'POD Not Submitted' : ''}
+                </td>
+              </tr>
+            )}
             {(order.requestedDate || order.requestedTime) && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
@@ -379,8 +387,8 @@ export default function PrintWaybillPage() {
           <thead>
             <tr>
               <th
-                colSpan={4}
-                className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-bold text-left"
+                colSpan={6}
+                className="border border-gray-400 px-3 py-1.5 bg-blue-200 font-bold text-left print:bg-blue-200"
               >
                 Truck, Trailer and Driver Details
               </th>
@@ -399,7 +407,9 @@ export default function PrintWaybillPage() {
                   <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold w-32">
                     Driver Name:
                   </td>
-                  <td className="border border-gray-400 px-4 py-2">{order.driver.name}</td>
+                  <td className="border border-gray-400 px-4 py-2" colSpan={3}>
+                    {order.driver.name}
+                  </td>
                 </tr>
                     {order.driver.mobile && (
                   <tr>
@@ -410,7 +420,7 @@ export default function PrintWaybillPage() {
                     <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                       Trailer:
                     </td>
-                    <td className="border border-gray-400 px-4 py-2">
+                    <td className="border border-gray-400 px-4 py-2" colSpan={3}>
                       {order.trailerNumber || order.attachment?.name || ''}
                     </td>
                   </tr>
@@ -427,9 +437,9 @@ export default function PrintWaybillPage() {
                       {order.vehicle.chassisNo && ` (Chassis: ${order.vehicle.chassisNo})`}
                 </td>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                  Plate Number:
+                  Door No.:
                 </td>
-                <td className="border border-gray-400 px-4 py-2">
+                <td className="border border-gray-400 px-4 py-2" colSpan={3}>
                   {order.vehicle.doorNo || order.vehicle.plateNumber || ''}
                 </td>
               </tr>
@@ -439,7 +449,7 @@ export default function PrintWaybillPage() {
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Trailer:
                 </td>
-                <td className="border border-gray-400 px-4 py-2" colSpan={3}>
+                <td className="border border-gray-400 px-4 py-2" colSpan={5}>
                   {order.attachment.name || ''}
                       {order.attachment.chassisNo && ` (Chassis: ${order.attachment.chassisNo})`}
                 </td>
@@ -450,7 +460,7 @@ export default function PrintWaybillPage() {
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Accessories:
                 </td>
-                <td className="border border-gray-400 px-4 py-2" colSpan={3}>
+                <td className="border border-gray-400 px-4 py-2" colSpan={5}>
                   {order.accessories.map((accessory: any, index: number) => (
                     <div key={accessory.id} className={index > 0 ? 'mt-1' : ''}>
                       {accessory.name || 'Unnamed'}
@@ -461,13 +471,13 @@ export default function PrintWaybillPage() {
                 </td>
               </tr>
             )}
-            {(order.startKms !== null && order.startKms !== undefined) ||
+            {((order.startKms !== null && order.startKms !== undefined) ||
             (order.kmOut !== null && order.kmOut !== undefined) ||
             (order.kmIn !== null && order.kmIn !== undefined) ||
-            (order.runKm !== null && order.runKm !== undefined) ? (
+            (order.runKm !== null && order.runKm !== undefined)) && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                  Km Out:
+                  Km Start:
                 </td>
                 <td className="border border-gray-400 px-4 py-2">
                   {order.kmOut !== null && order.kmOut !== undefined
@@ -477,20 +487,16 @@ export default function PrintWaybillPage() {
                       : ''}
                 </td>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                  Km In:
+                  Km Closing:
                 </td>
                 <td className="border border-gray-400 px-4 py-2">
                   {order.kmIn !== null && order.kmIn !== undefined ? order.kmIn : ''}
                 </td>
-              </tr>
-            ) : null}
-                {order.runKm !== null && order.runKm !== undefined && (
-              <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Run Km:
                 </td>
-                <td className="border border-gray-400 px-4 py-2" colSpan={3}>
-                  {order.runKm}
+                <td className="border border-gray-400 px-4 py-2">
+                  {order.runKm !== null && order.runKm !== undefined ? order.runKm : ''}
                 </td>
               </tr>
             )}
@@ -500,67 +506,89 @@ export default function PrintWaybillPage() {
         <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
               <thead>
                 <tr>
+              <th
+                colSpan={5}
+                className="border border-gray-400 px-3 py-1.5 bg-blue-200 font-bold text-left print:bg-blue-200"
+              >
+                    Cargo Details
+                  </th>
+                </tr>
+                <tr>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Customer Details
+                    Sl No.
                   </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                     Cargo Description
                   </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Container Number
+                    Wt (Ton)
                   </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Container Size
-                  </th>
-              <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Weight UOM
-                  </th>
-              <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Weight
+                    Vol (m³)
                   </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                     Value (SAR)
                   </th>
-              <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    SI/ No
-                  </th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-              <td className="border border-gray-400 px-4 py-2">
-                {order.customer?.name || ''}
-                    {order.customerContact && (
-                  <div className="text-xs text-gray-600">{order.customerContact}</div>
-                    )}
-                  </td>
-              <td className="border border-gray-400 px-4 py-2">{order.cargoDescription || ''}</td>
-              <td className="border border-gray-400 px-4 py-2">{order.containerNumber || ''}</td>
-              <td className="border border-gray-400 px-4 py-2">{order.containerSize || ''}</td>
-              <td className="border border-gray-400 px-4 py-2">{order.weightUom || 'TON'}</td>
-              <td className="border border-gray-400 px-4 py-2">
-                    {order.weight
-                      ? order.weightUom === 'KG'
-                        ? Number(order.weight)
-                        : Number(order.weight) / 1000
-                  : ''}
-                    {order.tareWeight && (
-                  <div className="text-xs text-gray-600">TARE WT: {Number(order.tareWeight)}</div>
-                    )}
-                  </td>
-              <td className="border border-gray-400 px-4 py-2">
-                {order.value ? Number(order.value).toLocaleString() : ''}
-                  </td>
-              <td className="border border-gray-400 px-4 py-2">1</td>
-                </tr>
+                {(() => {
+                  // Use cargoItems array if available, otherwise fall back to single cargo fields
+                  const cargoItems = order.cargoItems && Array.isArray(order.cargoItems) && order.cargoItems.length > 0
+                    ? order.cargoItems
+                    : [{
+                        description: order.cargoDescription || '',
+                        weight: order.weight,
+                        weightUom: order.weightUom || 'TON',
+                        volume: order.volume,
+                        value: order.value,
+                      }];
+
+                  return cargoItems.map((cargo: any, index: number) => {
+                    // Convert weight to Ton
+                    const weightInTon = cargo.weight
+                      ? cargo.weightUom === 'KG'
+                        ? (Number(cargo.weight) / 1000).toFixed(3)
+                        : Number(cargo.weight).toFixed(3)
+                      : '';
+
+                    return (
+                      <tr key={index}>
+                        <td className="border border-gray-400 px-3 py-1.5 text-center">
+                          {index + 1}
+                        </td>
+                        <td className="border border-gray-400 px-4 py-2">
+                          {cargo.description || cargo.cargoDescription || ''}
+                        </td>
+                        <td className="border border-gray-400 px-4 py-2">
+                          {weightInTon}
+                        </td>
+                        <td className="border border-gray-400 px-4 py-2">
+                          {cargo.volume ? Number(cargo.volume).toFixed(2) : ''}
+                        </td>
+                        <td className="border border-gray-400 px-4 py-2">
+                          {cargo.value ? Number(cargo.value).toLocaleString() : ''}
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
 
         <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
                 <thead>
                   <tr>
-              <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left w-16">
+              <th
+                colSpan={5}
+                className="border border-gray-400 px-3 py-1.5 bg-blue-200 font-bold text-left print:bg-blue-200"
+              >
                 Activities
+                    </th>
+                  </tr>
+                  <tr>
+              <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left w-16">
+                Sl No.
                     </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                 Purpose
@@ -578,168 +606,106 @@ export default function PrintWaybillPage() {
                 </thead>
                 <tbody>
                   <tr>
-              <td className="border border-gray-400 px-3 py-1.5 text-center">1</td>
-              <td className="border border-gray-400 px-4 py-2">Trip Begin</td>
-              <td className="border border-gray-400 px-4 py-2">Loading</td>
-              <td className="border border-gray-400 px-4 py-2">{order.from?.name || ''}</td>
-              <td className="border border-gray-400 px-4 py-2">
-                {order.requestedDate
-                  ? formatDate(order.requestedDate)
-                  : formatDate(order.createdAt)}{' '}
-                {order.requestedTime || ''}
+                    <td className="border border-gray-400 px-3 py-1.5 text-center">1</td>
+                    <td className="border border-gray-400 px-4 py-2">Loading</td>
+                    <td className="border border-gray-400 px-4 py-2">{order.from?.name || ''}</td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {order.dispatchFromLoading
+                        ? (() => {
+                            const dt = formatDateTime(order.dispatchFromLoading);
+                            return typeof dt === 'string' ? formatDate(order.dispatchFromLoading) : dt.date;
+                          })()
+                        : ''}
+                    </td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {order.dispatchFromLoading
+                        ? (() => {
+                            const dt = formatDateTime(order.dispatchFromLoading);
+                            return typeof dt === 'string' ? '' : dt.time;
+                          })()
+                        : ''}
                     </td>
                   </tr>
                   <tr>
-              <td className="border border-gray-400 px-3 py-1.5 text-center">2</td>
-              <td className="border border-gray-400 px-4 py-2">Trip End</td>
-              <td className="border border-gray-400 px-4 py-2">Un Loading</td>
-              <td className="border border-gray-400 px-4 py-2">{order.to?.name || ''}</td>
-              <td className="border border-gray-400 px-4 py-2">
-                {order.eta
-                  ? (() => {
-                      const dt = formatDateTime(order.eta);
-                      return typeof dt === 'string'
-                        ? formatDate(order.eta)
-                        : `${dt.date} ${dt.time}`;
-                    })()
-                  : ''}
+                    <td className="border border-gray-400 px-3 py-1.5 text-center">2</td>
+                    <td className="border border-gray-400 px-4 py-2">Arrival</td>
+                    <td className="border border-gray-400 px-4 py-2">{order.to?.name || ''}</td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {order.arrivalAtOffloading
+                        ? (() => {
+                            const dt = formatDateTime(order.arrivalAtOffloading);
+                            return typeof dt === 'string' ? formatDate(order.arrivalAtOffloading) : dt.date;
+                          })()
+                        : ''}
+                    </td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {order.arrivalAtOffloading
+                        ? (() => {
+                            const dt = formatDateTime(order.arrivalAtOffloading);
+                            return typeof dt === 'string' ? '' : dt.time;
+                          })()
+                        : ''}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-400 px-3 py-1.5 text-center">3</td>
+                    <td className="border border-gray-400 px-4 py-2">Unloading</td>
+                    <td className="border border-gray-400 px-4 py-2">{order.to?.name || ''}</td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {order.completedUnloading
+                        ? (() => {
+                            const dt = formatDateTime(order.completedUnloading);
+                            return typeof dt === 'string' ? formatDate(order.completedUnloading) : dt.date;
+                          })()
+                        : ''}
+                    </td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {order.completedUnloading
+                        ? (() => {
+                            const dt = formatDateTime(order.completedUnloading);
+                            return typeof dt === 'string' ? '' : dt.time;
+                          })()
+                        : ''}
                     </td>
                   </tr>
                 </tbody>
               </table>
 
-        {order.remarks && (
-          <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
+        {/* Footer: Remarks and Condition */}
+        {(order.remarks || order.recipientAcknowledgment) && (
+          <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid mt-1 print:mt-0.5">
+            <thead>
+              <tr>
+                <th
+                  colSpan={4}
+                  className="border border-gray-400 px-3 py-1.5 bg-blue-200 font-bold text-left print:bg-blue-200"
+                >
+                  Additional Information
+                </th>
+              </tr>
+            </thead>
             <tbody>
               <tr>
-                <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold w-24">
-                  Remarks:
-                </td>
-                <td className="border border-gray-400 px-4 py-2">{order.remarks}</td>
+                {order.remarks && (
+                  <>
+                    <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold w-32">
+                      Remarks:
+                    </td>
+                    <td className="border border-gray-400 px-4 py-2">{order.remarks}</td>
+                  </>
+                )}
+                {order.recipientAcknowledgment && (
+                  <>
+                    <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold w-32">
+                      Condition:
+                    </td>
+                    <td className="border border-gray-400 px-4 py-2">{order.recipientAcknowledgment}</td>
+                  </>
+                )}
               </tr>
             </tbody>
           </table>
         )}
-
-        <div className="border-t-2 border-gray-900 pt-1 print:pt-0.5 print:border-t-2 print:border-black mt-1 print:mt-0.5 print-break-avoid">
-          <table className="w-full text-xs print:text-xs border-collapse border border-gray-400">
-                <tbody>
-                  <tr>
-                <td className="border border-gray-400 px-3 py-1.5" colSpan={2}>
-                      In my presence and knowledge above mentioned seal were opened and found.
-                    </td>
-                  </tr>
-                  <tr>
-                <td className="border border-gray-400 px-3 py-1.5" colSpan={2}>
-                      I received the entire cargo in good condition and I have no claim.
-                    </td>
-                  </tr>
-                  <tr>
-                <td className="border border-gray-400 px-3 py-1.5" colSpan={2}>
-                      I received the entire cargo but I have following remarks.
-                    </td>
-                  </tr>
-            </tbody>
-          </table>
-          <div className="grid grid-cols-3 gap-0.5 print:gap-0 mt-0.5 print:mt-0">
-            <div className="col-span-2">
-              <table className="w-full text-xs print:text-xs border-collapse border border-gray-400">
-                <tbody>
-                  <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                      Client Authorized Name:
-                    </td>
-                    <td className="border border-gray-400 px-4 py-2"></td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                      Date:
-                    </td>
-                    <td className="border border-gray-400 px-4 py-2"></td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                      Signature:
-                    </td>
-                    <td className="border border-gray-400 px-4 py-2"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div>
-              <table className="w-full text-xs print:text-xs border-collapse border border-gray-400">
-                <tbody>
-                  <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                      Condition:
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-4 py-2">
-                      <label className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={order.recipientAcknowledgment === 'Good'}
-                          readOnly
-                          className="w-3 h-3 print:w-2 print:h-2 border-gray-400"
-                        />
-                        <span>Good</span>
-                      </label>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-4 py-2">
-                      <label className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={order.recipientAcknowledgment === 'Broken'}
-                          readOnly
-                          className="w-3 h-3 print:w-2 print:h-2 border-gray-400"
-                        />
-                        <span>Broken</span>
-                      </label>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
-                      Receipt:
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-4 py-2">
-                      <label className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={order.recipientAcknowledgment === 'Fully Received'}
-                          readOnly
-                          className="w-3 h-3 print:w-2 print:h-2 border-gray-400"
-                        />
-                        <span>Fully Received</span>
-                      </label>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-4 py-2">
-                      <label className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={order.recipientAcknowledgment === 'Partially'}
-                          readOnly
-                          className="w-3 h-3 print:w-2 print:h-2 border-gray-400"
-                        />
-                        <span>Partially</span>
-                      </label>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div className="mt-1 print:mt-0.5">
-                <p className="text-xs print:text-xs font-semibold mb-0.5">Customer Stamp:</p>
-                <div className="border-2 border-gray-400 min-h-[60px] print:min-h-[50px] p-1 print:p-0.5 bg-gray-50 print:bg-white"></div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

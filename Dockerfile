@@ -23,9 +23,12 @@ ENV NODE_ENV=production
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production && \
+    npm install --save-dev ts-node typescript tsconfig-paths
 
 COPY prisma ./prisma
+COPY scripts ./scripts
+COPY tsconfig.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/client/dist ./client/dist
 

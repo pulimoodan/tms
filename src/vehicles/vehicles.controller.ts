@@ -36,7 +36,11 @@ export class VehiclesController {
     @Body() createVehicleDto: CreateVehicleDto,
     @CurrentUser() currentUser: any,
   ): Promise<ApiResponseDto<any>> {
-    const vehicle = await this.vehiclesService.create(createVehicleDto, currentUser.id, currentUser.companyId);
+    const vehicle = await this.vehiclesService.create(
+      createVehicleDto,
+      currentUser.id,
+      currentUser.companyId,
+    );
     return {
       success: true,
       result: vehicle,
@@ -66,6 +70,22 @@ export class VehiclesController {
       results: result.results,
       pagination: result.pagination,
       message: 'Vehicles retrieved successfully',
+    };
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Get vehicle status counts' })
+  @ApiResponse({ status: 200, description: 'Status counts retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getStats(
+    @Query('type') type: string,
+    @CurrentUser() currentUser: any,
+  ): Promise<ApiResponseDto<any>> {
+    const counts = await this.vehiclesService.getStatusCounts(currentUser.companyId, type as any);
+    return {
+      success: true,
+      result: counts,
+      message: 'Status counts retrieved successfully',
     };
   }
 
@@ -99,7 +119,12 @@ export class VehiclesController {
     @Body() updateVehicleDto: UpdateVehicleDto,
     @CurrentUser() currentUser: any,
   ): Promise<ApiResponseDto<any>> {
-    const vehicle = await this.vehiclesService.update(id, updateVehicleDto, currentUser.id, currentUser.companyId);
+    const vehicle = await this.vehiclesService.update(
+      id,
+      updateVehicleDto,
+      currentUser.id,
+      currentUser.companyId,
+    );
     return {
       success: true,
       result: vehicle,
@@ -121,4 +146,3 @@ export class VehiclesController {
     await this.vehiclesService.remove(id, currentUser.companyId);
   }
 }
-

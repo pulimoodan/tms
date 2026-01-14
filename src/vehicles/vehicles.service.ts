@@ -8,7 +8,11 @@ import { Vehicle, VehicleType } from '@prisma/client';
 export class VehiclesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createVehicleDto: CreateVehicleDto, userId: string, companyId: string): Promise<Vehicle> {
+  async create(
+    createVehicleDto: CreateVehicleDto,
+    userId: string,
+    companyId: string,
+  ): Promise<Vehicle> {
     if (createVehicleDto.plateNumber) {
       const existingVehicle = await this.prisma.vehicle.findFirst({
         where: { plateNumber: createVehicleDto.plateNumber, companyId },
@@ -153,6 +157,97 @@ export class VehiclesService {
     };
   }
 
+  async getStatusCounts(
+    companyId: string,
+    type?: VehicleType,
+  ): Promise<{
+    Active: number;
+    OnTrip: number;
+    InMaintenance: number;
+    Inactive: number;
+  }> {
+    // Build where clause
+    // Note: When type is not specified, this includes ALL vehicle types:
+    // Vehicle, Attachment, Equipment, and Accessory (all stored in the vehicles table)
+    const where: any = { companyId };
+    if (type) {
+      where.type = type;
+    }
+
+    // Find vehicles/attachments/accessories assigned to pending orders (for OnTrip count)
+    // Accessories are linked to orders via the many-to-many relationship
+    const pendingOrders = await this.prisma.order.findMany({
+      where: {
+        companyId,
+        status: 'InProgress',
+      },
+      select: {
+        vehicleId: true,
+        attachmentId: true,
+        accessories: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    const inUseVehicleIds = pendingOrders
+      .map((order) => order.vehicleId)
+      .filter((id): id is string => id !== null);
+    const inUseAttachmentIds = pendingOrders
+      .map((order) => order.attachmentId)
+      .filter((id): id is string => id !== null);
+    const inUseAccessoryIds = pendingOrders
+      .flatMap((order) => order.accessories.map((accessory) => accessory.id))
+      .filter((id): id is string => id !== null);
+    // Combine all in-use IDs: vehicles, attachments, and accessories
+    const allInUseIds = [...inUseVehicleIds, ...inUseAttachmentIds, ...inUseAccessoryIds];
+
+    // Get counts by status using Prisma's groupBy (more efficient than fetching all records)
+    // This counts all vehicles matching the where clause (including accessories when type is not specified)
+    const statusCounts = await this.prisma.vehicle.groupBy({
+      by: ['status'],
+      where,
+      _count: {
+        id: true,
+      },
+    });
+
+    // Convert to object format
+    const counts: { [key: string]: number } = {
+      Active: 0,
+      OnTrip: 0,
+      InMaintenance: 0,
+      Inactive: 0,
+    };
+
+    statusCounts.forEach((item) => {
+      counts[item.status] = item._count.id;
+    });
+
+    // For OnTrip, count vehicles that are in use (assigned to InProgress orders)
+    // This includes vehicles, attachments, and accessories that are currently in use
+    // The where clause ensures we respect the type filter (if specified)
+    // Only fetch count, not full records - much more efficient
+    const onTripCount =
+      allInUseIds.length > 0
+        ? await this.prisma.vehicle.count({
+            where: {
+              ...where,
+              id: { in: allInUseIds },
+            },
+          })
+        : 0;
+
+    return {
+      Active: counts.Active || 0,
+      OnTrip: onTripCount,
+      InMaintenance: counts.InMaintenance || 0,
+      Inactive: counts.Inactive || 0,
+    };
+  }
+
   async findOne(id: string, companyId: string): Promise<Vehicle> {
     const vehicle = await this.prisma.vehicle.findFirst({
       where: { id, companyId },
@@ -171,7 +266,12 @@ export class VehiclesService {
     });
   }
 
-  async update(id: string, updateVehicleDto: UpdateVehicleDto, userId: string, companyId: string): Promise<Vehicle> {
+  async update(
+    id: string,
+    updateVehicleDto: UpdateVehicleDto,
+    userId: string,
+    companyId: string,
+  ): Promise<Vehicle> {
     const vehicle = await this.findOne(id, companyId);
 
     if (updateVehicleDto.plateNumber && updateVehicleDto.plateNumber !== vehicle.plateNumber) {
@@ -207,24 +307,39 @@ export class VehiclesService {
     if (updateVehicleDto.category !== undefined) updateData.category = updateVehicleDto.category;
     if (updateVehicleDto.asset !== undefined) updateData.asset = updateVehicleDto.asset || null;
     if (updateVehicleDto.doorNo !== undefined) updateData.doorNo = updateVehicleDto.doorNo || null;
-    if (updateVehicleDto.plateNumber !== undefined) updateData.plateNumber = updateVehicleDto.plateNumber || null;
-    if (updateVehicleDto.plateNumberArabic !== undefined) updateData.plateNumberArabic = updateVehicleDto.plateNumberArabic || null;
-    if (updateVehicleDto.chassisNo !== undefined) updateData.chassisNo = updateVehicleDto.chassisNo || null;
-    if (updateVehicleDto.sequenceNo !== undefined) updateData.sequenceNo = updateVehicleDto.sequenceNo || null;
-    if (updateVehicleDto.engineModel !== undefined) updateData.engineModel = updateVehicleDto.engineModel || null;
-    if (updateVehicleDto.equipmentNo !== undefined) updateData.equipmentNo = updateVehicleDto.equipmentNo || null;
-    if (updateVehicleDto.equipmentType !== undefined) updateData.equipmentType = updateVehicleDto.equipmentType || null;
-    if (updateVehicleDto.horsePower !== undefined) updateData.horsePower = updateVehicleDto.horsePower || null;
-    if (updateVehicleDto.manufacturingYear !== undefined) updateData.manufacturingYear = updateVehicleDto.manufacturingYear || null;
+    if (updateVehicleDto.plateNumber !== undefined)
+      updateData.plateNumber = updateVehicleDto.plateNumber || null;
+    if (updateVehicleDto.plateNumberArabic !== undefined)
+      updateData.plateNumberArabic = updateVehicleDto.plateNumberArabic || null;
+    if (updateVehicleDto.chassisNo !== undefined)
+      updateData.chassisNo = updateVehicleDto.chassisNo || null;
+    if (updateVehicleDto.sequenceNo !== undefined)
+      updateData.sequenceNo = updateVehicleDto.sequenceNo || null;
+    if (updateVehicleDto.engineModel !== undefined)
+      updateData.engineModel = updateVehicleDto.engineModel || null;
+    if (updateVehicleDto.equipmentNo !== undefined)
+      updateData.equipmentNo = updateVehicleDto.equipmentNo || null;
+    if (updateVehicleDto.equipmentType !== undefined)
+      updateData.equipmentType = updateVehicleDto.equipmentType || null;
+    if (updateVehicleDto.horsePower !== undefined)
+      updateData.horsePower = updateVehicleDto.horsePower || null;
+    if (updateVehicleDto.manufacturingYear !== undefined)
+      updateData.manufacturingYear = updateVehicleDto.manufacturingYear || null;
     if (updateVehicleDto.make !== undefined) updateData.make = updateVehicleDto.make || null;
     if (updateVehicleDto.model !== undefined) updateData.model = updateVehicleDto.model || null;
-    if (updateVehicleDto.engineSerialNo !== undefined) updateData.engineSerialNo = updateVehicleDto.engineSerialNo || null;
-    if (updateVehicleDto.capacity !== undefined) updateData.capacity = updateVehicleDto.capacity || null;
-    if (updateVehicleDto.tractorCategory !== undefined) updateData.tractorCategory = updateVehicleDto.tractorCategory || null;
-    if (updateVehicleDto.trailerCategory !== undefined) updateData.trailerCategory = updateVehicleDto.trailerCategory || null;
+    if (updateVehicleDto.engineSerialNo !== undefined)
+      updateData.engineSerialNo = updateVehicleDto.engineSerialNo || null;
+    if (updateVehicleDto.capacity !== undefined)
+      updateData.capacity = updateVehicleDto.capacity || null;
+    if (updateVehicleDto.tractorCategory !== undefined)
+      updateData.tractorCategory = updateVehicleDto.tractorCategory || null;
+    if (updateVehicleDto.trailerCategory !== undefined)
+      updateData.trailerCategory = updateVehicleDto.trailerCategory || null;
     if (updateVehicleDto.agent !== undefined) updateData.agent = updateVehicleDto.agent || null;
-    if (updateVehicleDto.builtInTrailer !== undefined) updateData.builtInTrailer = updateVehicleDto.builtInTrailer;
-    if (updateVehicleDto.builtInReefer !== undefined) updateData.builtInReefer = updateVehicleDto.builtInReefer;
+    if (updateVehicleDto.builtInTrailer !== undefined)
+      updateData.builtInTrailer = updateVehicleDto.builtInTrailer;
+    if (updateVehicleDto.builtInReefer !== undefined)
+      updateData.builtInReefer = updateVehicleDto.builtInReefer;
     if (updateVehicleDto.status !== undefined) updateData.status = updateVehicleDto.status;
 
     return this.prisma.vehicle.update({
@@ -241,4 +356,3 @@ export class VehiclesService {
     });
   }
 }
-

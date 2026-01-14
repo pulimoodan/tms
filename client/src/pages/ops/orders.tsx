@@ -4,8 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
@@ -371,50 +369,58 @@ export default function OrdersPage() {
   const [globalFilter, setGlobalFilter] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const { hasWritePermission } = usePermissions();
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['orders'],
+    queryKey: ['orders', pagination.pageIndex, pagination.pageSize],
     queryFn: async () => {
-      const response = await api.get('/orders?limit=100');
-      if (response.data.success && Array.isArray(response.data.results)) {
-        return response.data.results;
+      const page = pagination.pageIndex + 1;
+      const limit = pagination.pageSize;
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      const response = await api.get(`/orders?${params.toString()}`);
+      if (response.data.success) {
+        return {
+          results: Array.isArray(response.data.results) ? response.data.results : [],
+          pagination: response.data.pagination || {
+            page: page,
+            limit: limit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
       }
-      return [];
+      return { results: [], pagination: { page, limit, total: 0, totalPages: 0 } };
     },
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 
+  const orders = data?.results || [];
+  const paginationInfo = data?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 };
+
   const table = useReactTable({
-    data: data || [],
+    data: orders,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    pageCount: paginationInfo.totalPages || 0,
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: (row, columnId, filterValue) => {
-      const order = row.original;
-      const search = filterValue.toLowerCase();
-      return (
-        order.orderNo?.toLowerCase().includes(search) ||
-        order.customer?.name?.toLowerCase().includes(search) ||
-        order.from?.name?.toLowerCase().includes(search) ||
-        order.to?.name?.toLowerCase().includes(search) ||
-        order.vehicle?.plateNumber?.toLowerCase().includes(search) ||
-        order.driver?.name?.toLowerCase().includes(search) ||
-        order.cargoDescription?.toLowerCase().includes(search) ||
-        false
-      );
-    },
+    onPaginationChange: setPagination,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      globalFilter,
+      pagination,
     },
   });
 
@@ -674,8 +680,7 @@ export default function OrdersPage() {
 
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
-              {table.getFilteredRowModel().rows.length} order
-              {table.getFilteredRowModel().rows.length !== 1 ? 's' : ''} found
+              {paginationInfo.total} order{paginationInfo.total !== 1 ? 's' : ''} found
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -687,7 +692,7 @@ export default function OrdersPage() {
                 Previous
               </Button>
               <div className="text-sm text-muted-foreground">
-                Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                Page {paginationInfo.page} of {paginationInfo.totalPages || 1}
               </div>
               <Button
                 variant="outline"

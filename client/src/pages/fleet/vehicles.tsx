@@ -4,8 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
@@ -344,73 +342,101 @@ export default function VehiclesPage() {
   const [globalFilter, setGlobalFilter] = useState('');
   const { hasWritePermission } = usePermissions();
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'Vehicle' | 'Attachment' | 'Equipment' | 'Accessory'>('all');
+  const [typeFilter, setTypeFilter] = useState<
+    'all' | 'Vehicle' | 'Attachment' | 'Equipment' | 'Accessory'
+  >('all');
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['vehicles'],
+    queryKey: ['vehicles', pagination.pageIndex, pagination.pageSize, typeFilter, globalFilter],
     queryFn: async () => {
-      const response = await api.get('/vehicles?limit=100');
-      if (response.data.success && Array.isArray(response.data.results)) {
-        return response.data.results;
+      const page = pagination.pageIndex + 1;
+      const limit = pagination.pageSize;
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (typeFilter !== 'all') {
+        params.append('type', typeFilter);
       }
-      return [];
+
+      if (globalFilter && globalFilter.trim()) {
+        params.append('search', globalFilter.trim());
+      }
+
+      const response = await api.get(`/vehicles?${params.toString()}`);
+      if (response.data.success) {
+        return {
+          results: Array.isArray(response.data.results) ? response.data.results : [],
+          pagination: response.data.pagination || {
+            page: page,
+            limit: limit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+      return { results: [], pagination: { page, limit, total: 0, totalPages: 0 } };
     },
   });
 
-  // Filter data based on selected type - memoized for performance
-  const filteredData = useMemo(() => {
-    if (!data) return [];
-    if (typeFilter === 'all') return data;
-    return data.filter((vehicle: Vehicle) => {
-      return vehicle.type === typeFilter;
-    });
-  }, [data, typeFilter]);
+  const vehicles = data?.results || [];
+  const paginationInfo = data?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 };
 
-  // Calculate status counts based on filtered data - memoized for performance
-  // OnTrip is calculated based on isInUse flag (vehicle assigned to InProgress order)
-  // MUST be called before any early returns to follow Rules of Hooks
-  const statusCounts = useMemo(() => {
-    return {
-      Active: filteredData.filter((v: Vehicle) => v.status === 'Active').length || 0,
-      OnTrip: filteredData.filter((v: Vehicle) => v.isInUse === true).length || 0,
-      InMaintenance: filteredData.filter((v: Vehicle) => v.status === 'InMaintenance').length || 0,
-      Inactive: filteredData.filter((v: Vehicle) => v.status === 'Inactive').length || 0,
-    };
-  }, [filteredData]);
+  // Fetch status counts - optimized endpoint that returns only counts, not full records
+  const { data: statusCountsData, isLoading: isLoadingCounts } = useQuery({
+    queryKey: ['vehicles-stats', typeFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (typeFilter !== 'all') {
+        params.append('type', typeFilter);
+      }
+
+      const url = `/vehicles/stats${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await api.get(url);
+      if (response.data?.success && response.data?.result) {
+        return response.data.result;
+      }
+      return {
+        Active: 0,
+        OnTrip: 0,
+        InMaintenance: 0,
+        Inactive: 0,
+      };
+    },
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
+  // Status counts from the optimized endpoint
+  const statusCounts = statusCountsData || {
+    Active: 0,
+    OnTrip: 0,
+    InMaintenance: 0,
+    Inactive: 0,
+  };
 
   const table = useReactTable({
-    data: filteredData,
+    data: vehicles,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    pageCount: paginationInfo.totalPages || 0,
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: (row, columnId, filterValue) => {
-      const vehicle = row.original;
-      const search = filterValue.toLowerCase();
-      return (
-        vehicle.name?.toLowerCase().includes(search) ||
-        vehicle.asset?.toLowerCase().includes(search) ||
-        vehicle.plateNumber?.toLowerCase().includes(search) ||
-        vehicle.plateNumberArabic?.toLowerCase().includes(search) ||
-        vehicle.type?.toLowerCase().includes(search) ||
-        vehicle.category?.toLowerCase().includes(search) ||
-        vehicle.make?.toLowerCase().includes(search) ||
-        vehicle.model?.toLowerCase().includes(search) ||
-        vehicle.engineModel?.toLowerCase().includes(search) ||
-        vehicle.equipmentNo?.toLowerCase().includes(search) ||
-        false
-      );
-    },
+    onPaginationChange: setPagination,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       globalFilter,
+      pagination,
     },
   });
 
@@ -534,10 +560,16 @@ export default function VehiclesPage() {
       </div>
 
       {/* Type Filter Tabs */}
-      <Tabs 
-        value={typeFilter} 
+      <Tabs
+        value={typeFilter}
         onValueChange={(value) => {
-          if (value === 'all' || value === 'Vehicle' || value === 'Attachment' || value === 'Equipment' || value === 'Accessory') {
+          if (
+            value === 'all' ||
+            value === 'Vehicle' ||
+            value === 'Attachment' ||
+            value === 'Equipment' ||
+            value === 'Accessory'
+          ) {
             setTypeFilter(value);
           }
         }}
@@ -562,7 +594,10 @@ export default function VehiclesPage() {
             type="search"
             placeholder="Search vehicles by ID or model..."
             value={globalFilter ?? ''}
-            onChange={(e) => setGlobalFilter(e.target.value)}
+            onChange={(e) => {
+              setGlobalFilter(e.target.value);
+              setPagination({ pageIndex: 0, pageSize: pagination.pageSize }); // Reset to first page when search changes
+            }}
             className="pl-10"
           />
         </div>
@@ -672,8 +707,7 @@ export default function VehiclesPage() {
             </div>
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-muted-foreground">
-                {table.getFilteredRowModel().rows.length} vehicle
-                {table.getFilteredRowModel().rows.length !== 1 ? 's' : ''} found
+                {paginationInfo.total} vehicle{paginationInfo.total !== 1 ? 's' : ''} found
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -685,7 +719,7 @@ export default function VehiclesPage() {
                   Previous
                 </Button>
                 <div className="text-sm text-muted-foreground">
-                  Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                  Page {paginationInfo.page} of {paginationInfo.totalPages || 1}
                 </div>
                 <Button
                   variant="outline"
@@ -798,8 +832,7 @@ export default function VehiclesPage() {
       {viewMode === 'grid' && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {table.getFilteredRowModel().rows.length} vehicle
-            {table.getFilteredRowModel().rows.length !== 1 ? 's' : ''} found
+            {paginationInfo.total} vehicle{paginationInfo.total !== 1 ? 's' : ''} found
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -811,7 +844,7 @@ export default function VehiclesPage() {
               Previous
             </Button>
             <div className="text-sm text-muted-foreground">
-              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+              Page {paginationInfo.page} of {paginationInfo.totalPages || 1}
             </div>
             <Button
               variant="outline"

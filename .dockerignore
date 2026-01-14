@@ -12,6 +12,7 @@ coverage
 README.md
 *.md
 *.csv
+!scripts/*.csv
 *.pdf
 *.png
 *.jpg

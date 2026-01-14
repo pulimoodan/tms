@@ -89,8 +89,8 @@ async function importVehicles() {
   try {
     console.log('Starting vehicle import from CSV...');
 
-    // Read CSV file
-    const csvPath = path.join(process.cwd(), 'vehicles.csv (final)-Table 1.csv');
+    // Read CSV file from scripts folder
+    const csvPath = path.join(process.cwd(), 'scripts', 'vehicles.csv (final)-Table 1.csv');
     const csvContent = fs.readFileSync(csvPath, 'utf-8');
 
     // Parse CSV

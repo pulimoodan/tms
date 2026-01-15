@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { DateTimePickerSingle } from '@/components/ui/datetime-picker';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -33,34 +34,105 @@ import {
   Loading01Icon,
   Delete01Icon,
   File01Icon,
+  AlertCircleIcon,
+  InformationCircleIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { api } from '@/lib/api';
 import { uploadDocument } from '@/lib/api-helpers';
 import { MultiStepForm, type Step } from './multi-step-form';
 
-const waybillClosingSchema = z.object({
-  arrivalAtLoadingDate: z.string().optional(),
-  arrivalAtLoadingTime: z.string().optional(),
-  dispatchFromLoadingDate: z.string().optional(),
-  dispatchFromLoadingTime: z.string().optional(),
-  arrivalAtOffloadingDate: z.string().optional(),
-  arrivalAtOffloadingTime: z.string().optional(),
-  completedUnloadingDate: z.string().optional(),
-  completedUnloadingTime: z.string().optional(),
-  kmIn: z.string().min(1, 'Closing KMs is required'),
-  podNumber: z.string().min(1, 'POD Number is required'),
-  podDocument: z.string().min(1, 'POD Document is required'),
-  remarks: z.string().optional(),
-  recipientAcknowledgment: z.enum(['Good', 'Fully Received', 'Broken', 'Partially']).optional(),
-});
+const createWaybillClosingSchema = (startKms: number) =>
+  z
+  .object({
+    arrivalAtLoadingDate: z.string().min(1, 'Arrival at Loading date is required'),
+    arrivalAtLoadingTime: z.string().min(1, 'Arrival at Loading time is required'),
+    dispatchFromLoadingDate: z.string().min(1, 'Loading Completed date is required'),
+    dispatchFromLoadingTime: z.string().min(1, 'Loading Completed time is required'),
+    arrivalAtOffloadingDate: z.string().min(1, 'Arrival at Offloading date is required'),
+    arrivalAtOffloadingTime: z.string().min(1, 'Arrival at Offloading time is required'),
+    completedUnloadingDate: z.string().min(1, 'Completed Unloading date is required'),
+    completedUnloadingTime: z.string().min(1, 'Completed Unloading time is required'),
+      kmIn: z
+        .string()
+        .min(1, 'Closing KMs is required')
+        .refine(
+          (val) => {
+            const kmInNum = parseInt(val);
+            return !isNaN(kmInNum) && kmInNum >= startKms;
+          },
+          {
+            message: `Closing KMs must be greater than or equal to Start KMs (${startKms.toLocaleString()})`,
+          },
+        ),
+      podNumber: z.string().min(1, 'POD Number is required'),
+      podDocument: z.string().min(1, 'POD Document is required'),
+      remarks: z.string().optional(),
+      recipientAcknowledgment: z.enum(['Good', 'Fully Received', 'Broken', 'Partially']).optional(),
+    })
+  .superRefine((data, ctx) => {
+    // Validate chronological order with specific field errors
+    const getDateTime = (date: string | undefined, time: string | undefined) => {
+      if (!date || !time) return null;
+      try {
+        return new Date(`${date}T${time}`);
+      } catch {
+        return null;
+      }
+    };
 
-type WaybillClosingFormValues = z.infer<typeof waybillClosingSchema>;
+    const arrivalAtLoading = getDateTime(data.arrivalAtLoadingDate, data.arrivalAtLoadingTime);
+    const dispatchFromLoading = getDateTime(
+      data.dispatchFromLoadingDate,
+      data.dispatchFromLoadingTime,
+    );
+    const arrivalAtOffloading = getDateTime(
+      data.arrivalAtOffloadingDate,
+      data.arrivalAtOffloadingTime,
+    );
+    const completedUnloading = getDateTime(
+      data.completedUnloadingDate,
+      data.completedUnloadingTime,
+    );
+
+    // Arrival at Loading <= Loading Completed
+    if (arrivalAtLoading && dispatchFromLoading && arrivalAtLoading > dispatchFromLoading) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Loading Completed must be after Arrival at Loading',
+        path: ['dispatchFromLoadingDate'], // Set error on date field since DateTimePickerSingle uses date field
+      });
+    }
+
+    // Loading Completed <= Arrival at Offloading
+    if (dispatchFromLoading && arrivalAtOffloading && dispatchFromLoading > arrivalAtOffloading) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Arrival at Offloading must be after Loading Completed',
+        path: ['arrivalAtOffloadingDate'], // Set error on date field since DateTimePickerSingle uses date field
+      });
+    }
+
+    // Arrival at Offloading <= Completed Unloading
+    if (arrivalAtOffloading && completedUnloading && arrivalAtOffloading > completedUnloading) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Completed Unloading must be after Arrival at Offloading',
+        path: ['completedUnloadingDate'], // Set error on date field since DateTimePickerSingle uses date field
+      });
+    }
+  });
+
+type WaybillClosingFormValues = z.infer<ReturnType<typeof createWaybillClosingSchema>>;
 
 interface WaybillClosingFormProps {
   orderId: string;
   orderData?: {
     startKms?: number;
+    createdAt?: string;
+    requestedDate?: string;
+    requestedTime?: string;
+    eta?: string;
     arrivalAtLoading?: string;
     dispatchFromLoading?: string;
     arrivalAtOffloading?: string;
@@ -122,6 +194,9 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
   const [isUploadingPod, setIsUploadingPod] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const startKms = orderData?.startKms || 0;
+  const waybillClosingSchema = createWaybillClosingSchema(startKms);
 
   const form = useForm<WaybillClosingFormValues>({
     resolver: zodResolver(waybillClosingSchema),
@@ -245,9 +320,148 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
   }, [orderId, orderData, form, toast]);
 
   // Calculate run kilometers when kmIn or startKms changes
-  const startKms = orderData?.startKms || 0;
   const kmIn = form.watch('kmIn');
   const runKm = kmIn && startKms ? parseInt(kmIn) - startKms : undefined;
+
+  // Watch timestamp values for validation and delay calculation
+  const arrivalAtLoadingDate = form.watch('arrivalAtLoadingDate');
+  const arrivalAtLoadingTime = form.watch('arrivalAtLoadingTime');
+  const dispatchFromLoadingDate = form.watch('dispatchFromLoadingDate');
+  const dispatchFromLoadingTime = form.watch('dispatchFromLoadingTime');
+  const arrivalAtOffloadingDate = form.watch('arrivalAtOffloadingDate');
+  const arrivalAtOffloadingTime = form.watch('arrivalAtOffloadingTime');
+  const completedUnloadingDate = form.watch('completedUnloadingDate');
+  const completedUnloadingTime = form.watch('completedUnloadingTime');
+
+  // Helper function to format duration
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+      return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    }
+    return `${hours} hour${hours !== 1 ? 's' : ''} ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+  };
+
+  // Calculate loading duration (time between arrival at loading and loading completed)
+  const loadingDuration = useMemo(() => {
+    if (
+      !arrivalAtLoadingDate ||
+      !arrivalAtLoadingTime ||
+      !dispatchFromLoadingDate ||
+      !dispatchFromLoadingTime
+    ) {
+      return null;
+    }
+    try {
+      const arrivalAtLoading = new Date(`${arrivalAtLoadingDate}T${arrivalAtLoadingTime}`);
+      const loadingCompleted = new Date(`${dispatchFromLoadingDate}T${dispatchFromLoadingTime}`);
+
+      if (isNaN(arrivalAtLoading.getTime()) || isNaN(loadingCompleted.getTime())) {
+        return null;
+      }
+
+      const durationMinutes = Math.round(
+        (loadingCompleted.getTime() - arrivalAtLoading.getTime()) / (1000 * 60),
+      );
+
+      return durationMinutes > 0 ? durationMinutes : null;
+    } catch {
+      return null;
+    }
+  }, [
+    arrivalAtLoadingDate,
+    arrivalAtLoadingTime,
+    dispatchFromLoadingDate,
+    dispatchFromLoadingTime,
+  ]);
+
+  // Calculate unloading duration (time between arrival at offloading and offloading completed)
+  const unloadingDuration = useMemo(() => {
+    if (
+      !arrivalAtOffloadingDate ||
+      !arrivalAtOffloadingTime ||
+      !completedUnloadingDate ||
+      !completedUnloadingTime
+    ) {
+      return null;
+    }
+    try {
+      const arrivalAtOffloading = new Date(`${arrivalAtOffloadingDate}T${arrivalAtOffloadingTime}`);
+      const unloadingCompleted = new Date(`${completedUnloadingDate}T${completedUnloadingTime}`);
+
+      if (isNaN(arrivalAtOffloading.getTime()) || isNaN(unloadingCompleted.getTime())) {
+        return null;
+      }
+
+      const durationMinutes = Math.round(
+        (unloadingCompleted.getTime() - arrivalAtOffloading.getTime()) / (1000 * 60),
+      );
+
+      return durationMinutes > 0 ? durationMinutes : null;
+    } catch {
+      return null;
+    }
+  }, [
+    arrivalAtOffloadingDate,
+    arrivalAtOffloadingTime,
+    completedUnloadingDate,
+    completedUnloadingTime,
+  ]);
+
+  // Helper to combine date and time into ISO datetime string
+  const combineDateTime = (
+    date: string | undefined,
+    time: string | undefined,
+  ): string | undefined => {
+    if (!date || !time) return undefined;
+    try {
+      return new Date(`${date}T${time}`).toISOString();
+    } catch {
+      return undefined;
+    }
+  };
+
+  // Helper to split ISO datetime string into date and time
+  const splitDateTime = (
+    isoString: string | undefined,
+  ): { date: string; time: string } | undefined => {
+    if (!isoString) return undefined;
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return undefined;
+      return {
+        date: date.toISOString().split('T')[0],
+        time: date.toTimeString().slice(0, 5),
+      };
+    } catch {
+      return undefined;
+    }
+  };
+
+  // Get minimum datetime for each timestamp field (for datetime picker restriction)
+  const getMinDateTimeForField = (fieldName: string): string | undefined => {
+    if (fieldName === 'dispatchFromLoadingDate') {
+      return combineDateTime(arrivalAtLoadingDate, arrivalAtLoadingTime);
+    }
+    if (fieldName === 'arrivalAtOffloadingDate') {
+      return (
+        combineDateTime(dispatchFromLoadingDate, dispatchFromLoadingTime) ||
+        combineDateTime(arrivalAtLoadingDate, arrivalAtLoadingTime)
+      );
+    }
+    if (fieldName === 'completedUnloadingDate') {
+      return (
+        combineDateTime(arrivalAtOffloadingDate, arrivalAtOffloadingTime) ||
+        combineDateTime(dispatchFromLoadingDate, dispatchFromLoadingTime) ||
+        combineDateTime(arrivalAtLoadingDate, arrivalAtLoadingTime)
+      );
+    }
+    return undefined;
+  };
 
   const handleNextStep = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -255,7 +469,32 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
     const currentStepData = STEPS[step - 1];
     if (!currentStepData?.fields) return;
 
-    const isValid = await form.trigger(currentStepData.fields as any);
+    let isValid = false;
+
+    // For step 1, validate all timestamp fields together to trigger chronological order validation
+    if (step === 1) {
+      const timestampFields = [
+        'arrivalAtLoadingDate',
+        'arrivalAtLoadingTime',
+        'dispatchFromLoadingDate',
+        'dispatchFromLoadingTime',
+        'arrivalAtOffloadingDate',
+        'arrivalAtOffloadingTime',
+        'completedUnloadingDate',
+        'completedUnloadingTime',
+      ];
+      // Validate all timestamp fields together - this will trigger superRefine for chronological order
+      isValid = await form.trigger(timestampFields as any);
+    } 
+    // For step 2, validate kmIn field (which includes the >= startKms check via refine)
+    else if (step === 2) {
+      isValid = await form.trigger('kmIn');
+    } 
+    // For other steps, validate current step fields
+    else {
+      isValid = await form.trigger(currentStepData.fields as any);
+    }
+
     if (isValid && step < STEPS.length) {
       const nextStep = step + 1;
       setStep(nextStep);
@@ -283,9 +522,7 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
       // Combine date and time for arrivalAtLoading
       const arrivalAtLoading =
         values.arrivalAtLoadingDate && values.arrivalAtLoadingTime
-          ? new Date(
-              `${values.arrivalAtLoadingDate}T${values.arrivalAtLoadingTime}`,
-            ).toISOString()
+          ? new Date(`${values.arrivalAtLoadingDate}T${values.arrivalAtLoadingTime}`).toISOString()
           : undefined;
 
       // Combine date and time for dispatchFromLoading (Loading Completed)
@@ -406,108 +643,158 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
               <FormField
                 control={form.control}
                 name="arrivalAtLoadingDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Arrival at Loading</FormLabel>
-                    <FormControl>
-                      <DateTimePicker
-                        dateValue={field.value}
-                        timeValue={form.watch('arrivalAtLoadingTime')}
-                        onDateChange={(value) => {
-                          field.onChange(value);
-                        }}
-                        onTimeChange={(value) => {
-                          form.setValue('arrivalAtLoadingTime', value);
-                        }}
-                        datePlaceholder="Select arrival date"
-                        timePlaceholder="HH:mm"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Time when the vehicle arrived at the loading location
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const currentValue = combineDateTime(
+                    field.value,
+                    form.watch('arrivalAtLoadingTime'),
+                  );
+                  return (
+                    <FormItem>
+                      <FormLabel>Arrival at Loading</FormLabel>
+                      <FormControl>
+                        <DateTimePickerSingle
+                          value={currentValue}
+                          onChange={(isoString) => {
+                            const split = splitDateTime(isoString);
+                            if (split) {
+                              field.onChange(split.date);
+                              form.setValue('arrivalAtLoadingTime', split.time);
+                              form.trigger([
+                                'dispatchFromLoadingDate',
+                                'arrivalAtOffloadingDate',
+                                'completedUnloadingDate',
+                                'dispatchFromLoadingTime',
+                                'arrivalAtOffloadingTime',
+                                'completedUnloadingTime',
+                              ]);
+                            }
+                          }}
+                          placeholder="Select arrival date and time"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Time when the vehicle arrived at the loading location
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="dispatchFromLoadingDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Loading Completed</FormLabel>
-                    <FormControl>
-                      <DateTimePicker
-                        dateValue={field.value}
-                        timeValue={form.watch('dispatchFromLoadingTime')}
-                        onDateChange={(value) => {
-                          field.onChange(value);
-                        }}
-                        onTimeChange={(value) => {
-                          form.setValue('dispatchFromLoadingTime', value);
-                        }}
-                        datePlaceholder="Select loading date"
-                        timePlaceholder="HH:mm"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Time when the waybill was loaded / departed from loading
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const currentValue = combineDateTime(
+                    field.value,
+                    form.watch('dispatchFromLoadingTime'),
+                  );
+                  return (
+                    <FormItem>
+                      <FormLabel>Loading Completed</FormLabel>
+                      <FormControl>
+                        <DateTimePickerSingle
+                          value={currentValue}
+                          onChange={(isoString) => {
+                            const split = splitDateTime(isoString);
+                            if (split) {
+                              field.onChange(split.date);
+                              form.setValue('dispatchFromLoadingTime', split.time);
+                              form.trigger([
+                                'arrivalAtOffloadingDate',
+                                'completedUnloadingDate',
+                                'arrivalAtOffloadingTime',
+                                'completedUnloadingTime',
+                              ]);
+                            }
+                          }}
+                          minDateTime={getMinDateTimeForField('dispatchFromLoadingDate')}
+                          placeholder="Select loading date and time"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Time when the waybill was loaded / departed from loading
+                      </FormDescription>
+                      {loadingDuration !== null && (
+                        <div className="mt-1.5 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                          <HugeiconsIcon icon={InformationCircleIcon} className="h-3.5 w-3.5" />
+                          <span>{formatDuration(loadingDuration)} at loading location</span>
+                        </div>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="arrivalAtOffloadingDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Arrival at Offloading</FormLabel>
-                    <FormControl>
-                      <DateTimePicker
-                        dateValue={field.value}
-                        timeValue={form.watch('arrivalAtOffloadingTime')}
-                        onDateChange={(value) => {
-                          field.onChange(value);
-                        }}
-                        onTimeChange={(value) => {
-                          form.setValue('arrivalAtOffloadingTime', value);
-                        }}
-                        datePlaceholder="Select arrival date"
-                        timePlaceholder="HH:mm"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const currentValue = combineDateTime(
+                    field.value,
+                    form.watch('arrivalAtOffloadingTime'),
+                  );
+                  return (
+                    <FormItem>
+                      <FormLabel>Arrival at Offloading</FormLabel>
+                      <FormControl>
+                        <DateTimePickerSingle
+                          value={currentValue}
+                          onChange={(isoString) => {
+                            const split = splitDateTime(isoString);
+                            if (split) {
+                              field.onChange(split.date);
+                              form.setValue('arrivalAtOffloadingTime', split.time);
+                              form.trigger(['completedUnloadingDate', 'completedUnloadingTime']);
+                            }
+                          }}
+                          minDateTime={getMinDateTimeForField('arrivalAtOffloadingDate')}
+                          placeholder="Select arrival date and time"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="completedUnloadingDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Completed Unloading</FormLabel>
-                    <FormControl>
-                      <DateTimePicker
-                        dateValue={field.value}
-                        timeValue={form.watch('completedUnloadingTime')}
-                        onDateChange={(value) => {
-                          field.onChange(value);
-                        }}
-                        onTimeChange={(value) => {
-                          form.setValue('completedUnloadingTime', value);
-                        }}
-                        datePlaceholder="Select completion date"
-                        timePlaceholder="HH:mm"
-                      />
-                    </FormControl>
-                    <FormDescription>Time when unloading was completed</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const currentValue = combineDateTime(
+                    field.value,
+                    form.watch('completedUnloadingTime'),
+                  );
+                  return (
+                    <FormItem>
+                      <FormLabel>Completed Unloading</FormLabel>
+                      <FormControl>
+                        <DateTimePickerSingle
+                          value={currentValue}
+                          onChange={(isoString) => {
+                            const split = splitDateTime(isoString);
+                            if (split) {
+                              field.onChange(split.date);
+                              form.setValue('completedUnloadingTime', split.time);
+                            }
+                          }}
+                          minDateTime={getMinDateTimeForField('completedUnloadingDate')}
+                          placeholder="Select completion date and time"
+                        />
+                      </FormControl>
+                      <FormDescription>Time when unloading was completed</FormDescription>
+                      {unloadingDuration !== null && (
+                        <div className="mt-1.5 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                          <HugeiconsIcon icon={InformationCircleIcon} className="h-3.5 w-3.5" />
+                          <span>{formatDuration(unloadingDuration)} at offloading location</span>
+                        </div>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
           )}

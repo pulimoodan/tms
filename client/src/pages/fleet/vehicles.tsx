@@ -419,6 +419,45 @@ export default function VehiclesPage() {
     Inactive: 0,
   };
 
+  // Fetch total counts for each type filter to display in tab labels
+  const { data: allCounts } = useQuery({
+    queryKey: ['vehicles-counts-all-types'],
+    queryFn: async () => {
+      const types = ['all', 'Vehicle', 'Attachment', 'Equipment', 'Accessory'] as const;
+      const counts: Record<string, number> = {};
+
+      await Promise.all(
+        types.map(async (type) => {
+          const params = new URLSearchParams({
+            page: '1',
+            limit: '1', // We only need the total count from pagination
+          });
+          if (type !== 'all') {
+            params.append('type', type);
+          }
+
+          const response = await api.get(`/vehicles?${params.toString()}`);
+          if (response.data?.success && response.data?.pagination) {
+            counts[type] = response.data.pagination.total || 0;
+          } else {
+            counts[type] = 0;
+          }
+        }),
+      );
+
+      return counts;
+    },
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
+  const typeCounts = allCounts || {
+    all: 0,
+    Vehicle: 0,
+    Attachment: 0,
+    Equipment: 0,
+    Accessory: 0,
+  };
+
   const table = useReactTable({
     data: vehicles,
     columns,
@@ -575,11 +614,11 @@ export default function VehiclesPage() {
         }}
       >
         <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="Vehicle">Vehicles</TabsTrigger>
-          <TabsTrigger value="Attachment">Attachments</TabsTrigger>
-          <TabsTrigger value="Equipment">Equipment</TabsTrigger>
-          <TabsTrigger value="Accessory">Accessories</TabsTrigger>
+          <TabsTrigger value="all">All ({typeCounts.all || 0})</TabsTrigger>
+          <TabsTrigger value="Vehicle">Vehicles ({typeCounts.Vehicle || 0})</TabsTrigger>
+          <TabsTrigger value="Attachment">Attachments ({typeCounts.Attachment || 0})</TabsTrigger>
+          <TabsTrigger value="Equipment">Equipment ({typeCounts.Equipment || 0})</TabsTrigger>
+          <TabsTrigger value="Accessory">Accessories ({typeCounts.Accessory || 0})</TabsTrigger>
         </TabsList>
       </Tabs>
 

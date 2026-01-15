@@ -149,6 +149,10 @@ export default function WaybillClosingPage() {
         orderId={id!}
         orderData={{
           startKms: order.startKms || undefined,
+          createdAt: order.createdAt || undefined,
+          requestedDate: order.requestedDate || undefined,
+          requestedTime: order.requestedTime || undefined,
+          eta: order.eta || undefined,
           arrivalAtLoading: order.arrivalAtLoading || undefined,
           dispatchFromLoading: order.dispatchFromLoading || undefined,
           arrivalAtOffloading: order.arrivalAtOffloading || undefined,

@@ -607,20 +607,20 @@ export default function PrintWaybillPage() {
                 <tbody>
                   <tr>
                     <td className="border border-gray-400 px-3 py-1.5 text-center">1</td>
-                    <td className="border border-gray-400 px-4 py-2">Loading</td>
+                    <td className="border border-gray-400 px-4 py-2">Arrival at Loading</td>
                     <td className="border border-gray-400 px-4 py-2">{order.from?.name || ''}</td>
                     <td className="border border-gray-400 px-4 py-2">
-                      {order.dispatchFromLoading
+                      {order.arrivalAtLoading
                         ? (() => {
-                            const dt = formatDateTime(order.dispatchFromLoading);
-                            return typeof dt === 'string' ? formatDate(order.dispatchFromLoading) : dt.date;
+                            const dt = formatDateTime(order.arrivalAtLoading);
+                            return typeof dt === 'string' ? formatDate(order.arrivalAtLoading) : dt.date;
                           })()
                         : ''}
                     </td>
                     <td className="border border-gray-400 px-4 py-2">
-                      {order.dispatchFromLoading
+                      {order.arrivalAtLoading
                         ? (() => {
-                            const dt = formatDateTime(order.dispatchFromLoading);
+                            const dt = formatDateTime(order.arrivalAtLoading);
                             return typeof dt === 'string' ? '' : dt.time;
                           })()
                         : ''}
@@ -628,7 +628,30 @@ export default function PrintWaybillPage() {
                   </tr>
                   <tr>
                     <td className="border border-gray-400 px-3 py-1.5 text-center">2</td>
-                    <td className="border border-gray-400 px-4 py-2">Arrival</td>
+                    <td className="border border-gray-400 px-4 py-2">Loading Completed</td>
+                    <td className="border border-gray-400 px-4 py-2">{order.from?.name || ''}</td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {(order.completedLoading || order.dispatchFromLoading)
+                        ? (() => {
+                            const timestamp = order.completedLoading || order.dispatchFromLoading;
+                            const dt = formatDateTime(timestamp);
+                            return typeof dt === 'string' ? formatDate(timestamp) : dt.date;
+                          })()
+                        : ''}
+                    </td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {(order.completedLoading || order.dispatchFromLoading)
+                        ? (() => {
+                            const timestamp = order.completedLoading || order.dispatchFromLoading;
+                            const dt = formatDateTime(timestamp);
+                            return typeof dt === 'string' ? '' : dt.time;
+                          })()
+                        : ''}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-400 px-3 py-1.5 text-center">3</td>
+                    <td className="border border-gray-400 px-4 py-2">Arrival at Offloading</td>
                     <td className="border border-gray-400 px-4 py-2">{order.to?.name || ''}</td>
                     <td className="border border-gray-400 px-4 py-2">
                       {order.arrivalAtOffloading
@@ -648,8 +671,8 @@ export default function PrintWaybillPage() {
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 text-center">3</td>
-                    <td className="border border-gray-400 px-4 py-2">Unloading</td>
+                    <td className="border border-gray-400 px-3 py-1.5 text-center">4</td>
+                    <td className="border border-gray-400 px-4 py-2">Offloading Completed</td>
                     <td className="border border-gray-400 px-4 py-2">{order.to?.name || ''}</td>
                     <td className="border border-gray-400 px-4 py-2">
                       {order.completedUnloading

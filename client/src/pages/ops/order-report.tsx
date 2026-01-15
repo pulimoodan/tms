@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import {
   flexRender,
   getCoreRowModel,
@@ -394,7 +394,7 @@ export default function OrderReportPage() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
-  
+
   // Set default to today
   const getTodayRange = () => {
     const today = new Date();
@@ -403,8 +403,10 @@ export default function OrderReportPage() {
     todayEnd.setHours(23, 59, 59, 999);
     return { from: today, to: todayEnd };
   };
-  
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(getTodayRange());
+
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(
+    getTodayRange(),
+  );
   const [selectedRangeLabel, setSelectedRangeLabel] = useState<string>('Today');
   const [internalRange, setInternalRange] = useState<DateRange | undefined>(undefined);
 
@@ -549,17 +551,17 @@ export default function OrderReportPage() {
     if (dateRange?.from && dateRange?.to) {
       const fromFormatted = formatDateForFilename(dateRange.from);
       const toFormatted = formatDateForFilename(dateRange.to);
-      
+
       // Check if from and to dates are the same (same day)
       const fromDate = new Date(dateRange.from);
       fromDate.setHours(0, 0, 0, 0);
       const toDate = new Date(dateRange.to);
       toDate.setHours(0, 0, 0, 0);
-      
+
       if (fromDate.getTime() === toDate.getTime()) {
         return `daily-report-${fromFormatted}.${extension}`;
       }
-      
+
       return `daily-report-${fromFormatted}_to_${toFormatted}.${extension}`;
     }
     const today = new Date();
@@ -766,6 +768,94 @@ export default function OrderReportPage() {
     ];
     ws['!cols'] = colWidths;
 
+    // Define column indices for blue columns (JOB#, DOOR#, BADGE#, Allowance columns)
+    // Column indices: 0=SR#, 1=Customer, 2=JOB#, 3=Plate#, 4=DOOR#, 5=Attachment, 6=KM Start,
+    // 7=Driver Name, 8=BADGE#, 9=Departure Date, 10=Trip#, 11=Trip Month, 12=From,
+    // 13=Loading Time, 14=To, 15=Arrival Date, 16=Arrival Time, 17=Offloading Date,
+    // 18=Offloading Time, 19=KM Closing, 20=KMs Run, 21=Allowance, 22=Back Load Allowance,
+    // 23=Total Trip Allowance, 24=POD#, 25=POD Submitted
+    const blueColumns = [2, 4, 8, 21, 22, 23]; // JOB#, DOOR#, BADGE#, Allowance columns
+
+    // Green header style (default)
+    const greenHeaderStyle = {
+      font: { bold: true, color: { rgb: '000000' }, sz: 11 },
+      fill: { fgColor: { rgb: 'C6EFCE' } }, // Light green background
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true, indent: 1 },
+      border: {
+        top: { style: 'thin', color: { rgb: '000000' } },
+        bottom: { style: 'thin', color: { rgb: '000000' } },
+        left: { style: 'thin', color: { rgb: '000000' } },
+        right: { style: 'thin', color: { rgb: '000000' } },
+      },
+    };
+
+    // Blue header style (for specific columns)
+    const blueHeaderStyle = {
+      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+      fill: { fgColor: { rgb: '4472C4' } }, // Blue background
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true, indent: 1 },
+      border: {
+        top: { style: 'thin', color: { rgb: '000000' } },
+        bottom: { style: 'thin', color: { rgb: '000000' } },
+        left: { style: 'thin', color: { rgb: '000000' } },
+        right: { style: 'thin', color: { rgb: '000000' } },
+      },
+    };
+
+    // Blue data cell style (for entire columns)
+    const blueDataStyle = {
+      font: { color: { rgb: '000000' }, sz: 11 },
+      fill: { fgColor: { rgb: 'D9E1F2' } }, // Light blue background for data cells
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true, indent: 1 },
+      border: {
+        top: { style: 'thin', color: { rgb: '000000' } },
+        bottom: { style: 'thin', color: { rgb: '000000' } },
+        left: { style: 'thin', color: { rgb: '000000' } },
+        right: { style: 'thin', color: { rgb: '000000' } },
+      },
+    };
+
+    // Default data cell style
+    const defaultDataStyle = {
+      font: { color: { rgb: '000000' }, sz: 11 },
+      fill: { fgColor: { rgb: 'FFFFFF' } }, // White background
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true, indent: 1 },
+      border: {
+        top: { style: 'thin', color: { rgb: '000000' } },
+        bottom: { style: 'thin', color: { rgb: '000000' } },
+        left: { style: 'thin', color: { rgb: '000000' } },
+        right: { style: 'thin', color: { rgb: '000000' } },
+      },
+    };
+
+    // Get the range of the worksheet
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+
+    // Apply styling to all cells
+    for (let row = range.s.r; row <= range.e.r; row++) {
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+        if (!ws[cellAddress]) continue;
+
+        const isBlueColumn = blueColumns.includes(col);
+        const isHeaderRow = row === 0;
+
+        if (isHeaderRow) {
+          // Header row: blue or green based on column
+          ws[cellAddress].s = isBlueColumn ? blueHeaderStyle : greenHeaderStyle;
+        } else {
+          // Data rows: blue background for blue columns, white for others
+          ws[cellAddress].s = isBlueColumn ? blueDataStyle : defaultDataStyle;
+        }
+      }
+    }
+
+    // Set row heights for better padding appearance
+    if (!ws['!rows']) ws['!rows'] = [];
+    for (let row = range.s.r; row <= range.e.r; row++) {
+      ws['!rows'][row] = { hpt: row === 0 ? 30 : 25 }; // Header row taller, data rows with padding
+    }
+
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Daily Report');
 
@@ -787,13 +877,18 @@ export default function OrderReportPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-[200px] justify-between">
-                {selectedRangeLabel || (dateRange?.from && dateRange?.to
-                  ? `${dateRange.from.toLocaleDateString('en-GB')} - ${dateRange.to.toLocaleDateString('en-GB')}`
-                  : 'Select date range')}
+                {selectedRangeLabel ||
+                  (dateRange?.from && dateRange?.to
+                    ? `${dateRange.from.toLocaleDateString('en-GB')} - ${dateRange.to.toLocaleDateString('en-GB')}`
+                    : 'Select date range')}
                 <HugeiconsIcon icon={ArrowDown01Icon} className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-auto p-0" onCloseAutoFocus={(e) => e.preventDefault()}>
+            <DropdownMenuContent
+              align="end"
+              className="w-auto p-0"
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
               <div className="p-2">
                 <DropdownMenuLabel className="px-2 py-1.5">Quick Select</DropdownMenuLabel>
                 <div className="space-y-0.5">
@@ -878,7 +973,11 @@ export default function OrderReportPage() {
                     className="cursor-pointer"
                     onClick={() => {
                       const today = new Date();
-                      const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                      const startOfLastMonth = new Date(
+                        today.getFullYear(),
+                        today.getMonth() - 1,
+                        1,
+                      );
                       startOfLastMonth.setHours(0, 0, 0, 0);
                       const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
                       endOfLastMonth.setHours(23, 59, 59, 999);
@@ -902,10 +1001,17 @@ export default function OrderReportPage() {
                   <Calendar
                     mode="range"
                     defaultMonth={internalRange?.from || dateRange?.from || new Date()}
-                    selected={internalRange !== undefined ? internalRange : (dateRange?.from && dateRange?.to ? { from: dateRange.from, to: dateRange.to } : undefined)}
+                    selected={
+                      internalRange !== undefined
+                        ? internalRange
+                        : dateRange?.from && dateRange?.to
+                          ? { from: dateRange.from, to: dateRange.to }
+                          : undefined
+                    }
                     onSelect={(range) => {
                       if (range) {
-                        const isSameDate = range.from && range.to && range.from.getTime() === range.to.getTime();
+                        const isSameDate =
+                          range.from && range.to && range.from.getTime() === range.to.getTime();
                         if (isSameDate) {
                           setInternalRange({ from: range.from, to: undefined });
                           return;

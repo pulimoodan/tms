@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx-js-style';
+import { useSidebar } from '@/components/ui/sidebar';
 import {
   flexRender,
   getCoreRowModel,
@@ -390,6 +391,16 @@ const columns: ColumnDef<WaybillReport>[] = [
 ];
 
 export default function OrderReportPage() {
+  const { state: sidebarState } = useSidebar();
+  // Check if sidebar is floating/inset variant (doesn't take layout space when expanded)
+  const isFloatingSidebar = useMemo(() => {
+    if (typeof document === 'undefined') return false;
+    const sidebarElement = document.querySelector('[data-slot="sidebar"]');
+    return (
+      sidebarElement?.getAttribute('data-variant') === 'floating' ||
+      sidebarElement?.getAttribute('data-variant') === 'inset'
+    );
+  }, []);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -1239,10 +1250,10 @@ export default function OrderReportPage() {
       </div>
 
       {/* Data Table Section */}
-      <div className="space-y-4 min-w-0 max-w-full">
+      <div className="space-y-4 min-w-0">
         <h2 className="text-lg font-semibold text-foreground">Order Details</h2>
-        <Card className="overflow-hidden w-full max-w-full min-w-0">
-          <CardContent className="p-6 w-full max-w-full min-w-0">
+        <Card className="overflow-hidden w-full min-w-0">
+          <CardContent className="p-6 w-full min-w-0">
             <div className="flex items-center gap-4 mb-4 flex-wrap">
               <Select
                 value={selectedCustomer || undefined}
@@ -1288,8 +1299,28 @@ export default function OrderReportPage() {
               </DropdownMenu>
             </div>
 
-            <div className="rounded-md border overflow-x-auto w-full min-w-0">
-              <table className="caption-bottom text-sm" style={{ minWidth: 'max-content' }}>
+            <div
+              className="rounded-md border overflow-x-auto"
+              style={{
+                maxWidth: (() => {
+                  // When floating/inset, sidebar doesn't take layout space when expanded
+                  if (isFloatingSidebar && sidebarState === 'expanded') {
+                    return 'calc(100vw - 7rem)';
+                  }
+                  // When floating/inset and collapsed, use icon width + spacing
+                  if (isFloatingSidebar && sidebarState === 'collapsed') {
+                    return 'calc(100vw - calc(var(--sidebar-width-icon) + var(--spacing-4)) - 7rem)';
+                  }
+                  // Standard sidebar: expanded
+                  if (sidebarState === 'expanded') {
+                    return 'calc(100vw - var(--sidebar-width) - 7rem)';
+                  }
+                  // Standard sidebar: collapsed
+                  return 'calc(100vw - var(--sidebar-width-icon) - 7rem)';
+                })(),
+              }}
+            >
+              <table className="caption-bottom text-sm">
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>

@@ -778,7 +778,7 @@ export default function OrderReportPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0 shrink">
           <PageTitle
-            title="Order Report"
+            title="Daily Sales Report"
             description="Comprehensive trip and order report with detailed information"
             icon={File01Icon}
           />

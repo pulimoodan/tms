@@ -59,7 +59,7 @@ const ALL_MENU_GROUPS: MenuGroup[] = [
         icon: 'DeliveryBox01Icon',
         items: [
           { title: 'Orders/Waybills', url: '/ops/orders', badge: null, module: 'Orders' },
-          { title: 'Daily sales report', url: '/ops/orders/report', badge: null, module: 'Orders' },
+          { title: 'Daily Sales Report', url: '/ops/orders/report', badge: null, module: 'Orders' },
           // { title: 'Trips', url: '/ops/trips', badge: 'M1' },
           // { title: 'AI Trip Planner', url: '/ops/ai-planner' },
           // { title: 'POD', url: '/ops/pod' },

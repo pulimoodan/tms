@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDriverDto } from './dto/create-driver.dto';
 import { UpdateDriverDto } from './dto/update-driver.dto';
+import { UpdateLocationDto } from './dto/update-location.dto';
 import { Driver } from '@prisma/client';
 
 @Injectable()
@@ -23,6 +24,32 @@ export class DriversService {
       );
     }
 
+    // Validate vehicle if provided - must be Vehicle type only
+    if (createDriverDto.vehicleId) {
+      const vehicle = await this.prisma.vehicle.findFirst({
+        where: { id: createDriverDto.vehicleId, companyId },
+      });
+
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle with ID '${createDriverDto.vehicleId}' not found`);
+      }
+
+      if (vehicle.type !== 'Vehicle') {
+        throw new BadRequestException(
+          'Only Vehicle type can be assigned to driver. Attachments, Equipment, and Accessories cannot be assigned.',
+        );
+      }
+
+      // Check if vehicle is already assigned to another driver
+      const existingDriverWithVehicle = await this.prisma.driver.findFirst({
+        where: { vehicleId: createDriverDto.vehicleId, companyId, id: { not: createDriverDto.vehicleId } },
+      });
+
+      if (existingDriverWithVehicle) {
+        throw new ConflictException('This vehicle is already assigned to another driver');
+      }
+    }
+
     return this.prisma.driver.create({
       data: {
         companyId,
@@ -40,8 +67,19 @@ export class DriversService {
         ownershipType: createDriverDto.ownershipType || 'CompanyOwned',
         outsourcedCompanyName: createDriverDto.outsourcedCompanyName || null,
         status: createDriverDto.status || 'Active',
+        taamId: createDriverDto.taamId || null,
+        vehicleId: createDriverDto.vehicleId || null,
         createdById: userId,
         updatedById: userId,
+      },
+      include: {
+        vehicle: {
+          select: {
+            id: true,
+            name: true,
+            plateNumber: true,
+          },
+        },
       },
     });
   }
@@ -105,6 +143,16 @@ export class DriversService {
   async findOne(id: string, companyId: string): Promise<Driver> {
     const driver = await this.prisma.driver.findFirst({
       where: { id, companyId },
+      include: {
+        vehicle: {
+          select: {
+            id: true,
+            name: true,
+            plateNumber: true,
+            type: true,
+          },
+        },
+      },
     });
 
     if (!driver) {
@@ -182,10 +230,51 @@ export class DriversService {
     if (updateDriverDto.status !== undefined) {
       updateData.status = updateDriverDto.status;
     }
+    if (updateDriverDto.taamId !== undefined) {
+      updateData.taamId = updateDriverDto.taamId || null;
+    }
+    if (updateDriverDto.vehicleId !== undefined) {
+      if (updateDriverDto.vehicleId) {
+        // Validate vehicle if provided - must be Vehicle type only
+        const vehicle = await this.prisma.vehicle.findFirst({
+          where: { id: updateDriverDto.vehicleId, companyId },
+        });
+
+        if (!vehicle) {
+          throw new NotFoundException(`Vehicle with ID '${updateDriverDto.vehicleId}' not found`);
+        }
+
+        if (vehicle.type !== 'Vehicle') {
+          throw new BadRequestException(
+            'Only Vehicle type can be assigned to driver. Attachments, Equipment, and Accessories cannot be assigned.',
+          );
+        }
+
+        // Check if vehicle is already assigned to another driver
+        const existingDriverWithVehicle = await this.prisma.driver.findFirst({
+          where: { vehicleId: updateDriverDto.vehicleId, companyId, id: { not: id } },
+        });
+
+        if (existingDriverWithVehicle) {
+          throw new ConflictException('This vehicle is already assigned to another driver');
+        }
+      }
+      updateData.vehicleId = updateDriverDto.vehicleId || null;
+    }
 
     return this.prisma.driver.update({
       where: { id },
       data: updateData,
+      include: {
+        vehicle: {
+          select: {
+            id: true,
+            name: true,
+            plateNumber: true,
+            type: true,
+          },
+        },
+      },
     });
   }
 
@@ -194,6 +283,163 @@ export class DriversService {
 
     await this.prisma.driver.delete({
       where: { id },
+    });
+  }
+
+  // Mobile app specific methods
+  async getDriverOrders(driverId: string, companyId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: {
+        driverId,
+        companyId,
+        status: {
+          in: ['Pending', 'InProgress', 'Dispatched'],
+        },
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            nameArabic: true,
+          },
+        },
+        from: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        to: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        vehicle: {
+          select: {
+            id: true,
+            name: true,
+            plateNumber: true,
+          },
+        },
+        cargoItems: {
+          select: {
+            id: true,
+            description: true,
+            weight: true,
+            sequence: true,
+          },
+          orderBy: {
+            sequence: 'asc',
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return {
+      orders,
+      pagination: {
+        page: 1,
+        limit: orders.length,
+        total: orders.length,
+        totalPages: 1,
+      },
+    };
+  }
+
+  async getDriverOrderDetails(orderId: string, driverId: string, companyId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: {
+        id: orderId,
+        driverId,
+        companyId,
+      },
+      include: {
+        customer: true,
+        from: true,
+        to: true,
+        vehicle: true,
+        attachment: {
+          select: {
+            id: true,
+            name: true,
+            plateNumber: true,
+          },
+        },
+        accessories: {
+          select: {
+            id: true,
+            name: true,
+            plateNumber: true,
+          },
+        },
+        cargoItems: {
+          orderBy: {
+            sequence: 'asc',
+          },
+        },
+        contract: {
+          select: {
+            id: true,
+            contractNumber: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found or not assigned to this driver');
+    }
+
+    return order;
+  }
+
+  async updateLocation(
+    driverId: string,
+    companyId: string,
+    updateLocationDto: UpdateLocationDto,
+  ) {
+    // Verify driver exists and belongs to company
+    const driver = await this.findOne(driverId, companyId);
+
+    // Update driver's last location
+    await this.prisma.driver.update({
+      where: { id: driverId },
+      data: {
+        lastLocationLat: updateLocationDto.latitude,
+        lastLocationLng: updateLocationDto.longitude,
+        lastLocationAt: new Date(),
+      },
+    });
+
+    // Store location history
+    const location = await this.prisma.driverLocation.create({
+      data: {
+        driverId,
+        orderId: updateLocationDto.orderId || null,
+        latitude: updateLocationDto.latitude,
+        longitude: updateLocationDto.longitude,
+        accuracy: updateLocationDto.accuracy || null,
+        heading: updateLocationDto.heading || null,
+        speed: updateLocationDto.speed || null,
+      },
+    });
+
+    return location;
+  }
+
+  async updateFcmToken(driverId: string, fcmToken: string) {
+    await this.prisma.driver.update({
+      where: { id: driverId },
+      data: {
+        fcmToken,
+      },
     });
   }
 }

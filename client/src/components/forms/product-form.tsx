@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
-import { PackageIcon, Loading01Icon } from '@hugeicons/core-free-icons';
+import { PackageIcon, Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { api } from '@/lib/api';
@@ -172,7 +172,7 @@ export function ProductForm({
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -322,7 +322,7 @@ export function ProductForm({
           <Button type="submit" disabled={isSubmitting} data-testid="button-save-product">
             {isSubmitting ? (
               <>
-                <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (

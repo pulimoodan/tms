@@ -1,11 +1,19 @@
-import { useLocation, useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft01Icon, Edit01Icon, Delete01Icon, Download01Icon, ShippingTruck02Icon, Loading01Icon, AlertCircleIcon } from '@hugeicons/core-free-icons';
+import { useLocation, useParams } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  ArrowLeft01Icon,
+  Edit01Icon,
+  Delete01Icon,
+  Download01Icon,
+  ShippingTruck02Icon,
+  Orbit01Icon,
+  AlertCircleIcon,
+} from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { api } from "@/lib/api";
+import { api } from '@/lib/api';
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -69,7 +77,11 @@ export default function VehicleDetailsPage() {
   const [, setLocation] = useLocation();
   const { id } = useParams();
 
-  const { data: vehicle, isLoading, error } = useQuery({
+  const {
+    data: vehicle,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['vehicle', id],
     queryFn: async () => {
       const response = await api.get(`/vehicles/${id}`);
@@ -84,7 +96,7 @@ export default function VehicleDetailsPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -93,16 +105,15 @@ export default function VehicleDetailsPage() {
     return (
       <div className="flex flex-col gap-4 p-2">
         <div className="flex items-center gap-2 mb-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setLocation("/fleet/vehicles")}
-          >
+          <Button variant="outline" size="icon" onClick={() => setLocation('/fleet/vehicles')}>
             <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
           </Button>
         </div>
         <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-          <HugeiconsIcon icon={AlertCircleIcon} className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+          <HugeiconsIcon
+            icon={AlertCircleIcon}
+            className="h-8 w-8 mx-auto mb-2 text-muted-foreground"
+          />
           <p>Vehicle not found</p>
         </div>
       </div>
@@ -116,7 +127,7 @@ export default function VehicleDetailsPage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setLocation("/fleet/vehicles")}
+            onClick={() => setLocation('/fleet/vehicles')}
             data-testid="button-back-vehicles"
           >
             <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
@@ -193,7 +204,9 @@ export default function VehicleDetailsPage() {
                       {vehicle.plateNumber}
                     </p>
                     {vehicle.plateNumberArabic && (
-                      <p className="text-xs text-muted-foreground mt-1">{vehicle.plateNumberArabic}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {vehicle.plateNumberArabic}
+                      </p>
                     )}
                   </div>
                 )}
@@ -255,7 +268,10 @@ export default function VehicleDetailsPage() {
             </CardContent>
           </Card>
 
-          {(vehicle.engineModel || vehicle.horsePower || vehicle.manufacturingYear || vehicle.engineSerialNo) && (
+          {(vehicle.engineModel ||
+            vehicle.horsePower ||
+            vehicle.manufacturingYear ||
+            vehicle.engineSerialNo) && (
             <Card className="border border-slate-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="text-lg">Engine Specifications</CardTitle>
@@ -292,7 +308,10 @@ export default function VehicleDetailsPage() {
                   {vehicle.engineSerialNo && (
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Engine Serial Number</p>
-                      <p className="font-mono text-sm font-semibold" data-testid="text-engine-serial">
+                      <p
+                        className="font-mono text-sm font-semibold"
+                        data-testid="text-engine-serial"
+                      >
                         {vehicle.engineSerialNo}
                       </p>
                     </div>
@@ -322,4 +341,3 @@ export default function VehicleDetailsPage() {
     </div>
   );
 }
-

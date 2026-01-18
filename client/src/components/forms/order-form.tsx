@@ -41,7 +41,7 @@ import {
   PackageIcon,
   ShippingTruck02Icon,
   Wrench01Icon,
-  Loading01Icon,
+  Orbit01Icon,
   File01Icon,
   PlusSignIcon,
   Delete01Icon,
@@ -409,6 +409,8 @@ export function OrderForm({
 
   // Clear attachmentId when vehicle with built-in trailer/reefer is selected
   const vehicleId = form.watch('vehicleId');
+  const driverId = form.watch('driverId');
+  
   useEffect(() => {
     if (vehicleId) {
       const selectedVehicle = vehiclesData.vehicles.find((v: any) => v.id === vehicleId);
@@ -416,8 +418,23 @@ export function OrderForm({
       if (hasBuiltIn && form.getValues('attachmentId')) {
         form.setValue('attachmentId', '');
       }
+      
+      // Auto-select driver if vehicle has an assigned driver
+      if (selectedVehicle?.driver?.id && !driverId) {
+        form.setValue('driverId', selectedVehicle.driver.id);
+      }
     }
-  }, [vehicleId, vehiclesData.vehicles]);
+  }, [vehicleId, vehiclesData.vehicles, driverId]);
+
+  // Auto-select vehicle when driver is selected
+  useEffect(() => {
+    if (driverId) {
+      const selectedDriver = drivers.find((d: any) => d.id === driverId);
+      if (selectedDriver?.vehicle?.id && !vehicleId) {
+        form.setValue('vehicleId', selectedDriver.vehicle.id);
+      }
+    }
+  }, [driverId, drivers, vehicleId]);
 
   const handleCustomerChange = (customerId: string) => {
     setSelectedCustomerId(customerId);
@@ -644,7 +661,7 @@ export function OrderForm({
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -1057,6 +1074,13 @@ export function OrderForm({
                                 getItemValue={(vehicle) =>
                                   `${vehicle.doorNo || ''} ${vehicle.asset || ''} ${vehicle.name || ''} ${vehicle.chassisNo || ''}`
                                 }
+                                onSelect={(vehicle) => {
+                                  field.onChange(vehicle.id);
+                                  // Auto-select driver if vehicle has assigned driver
+                                  if (vehicle.driver?.id) {
+                                    form.setValue('driverId', vehicle.driver.id);
+                                  }
+                                }}
                               />
                             </PopoverContent>
                           </Popover>
@@ -1479,6 +1503,10 @@ export function OrderForm({
                                       value={`${driver.name || ''} ${driver.mobile || ''} ${driver.iqamaNumber || ''}`}
                                       onSelect={() => {
                                         field.onChange(driver.id);
+                                        // Auto-select vehicle if driver has assigned vehicle
+                                        if (driver.vehicle?.id) {
+                                          form.setValue('vehicleId', driver.vehicle.id);
+                                        }
                                         setDriverOpen(false);
                                       }}
                                     >

@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { DriverLoginDto } from './dto/driver-login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { ApiResponseDto } from '../common/dto/api-response.dto';
 import { Public } from './decorators/public.decorator';
@@ -37,6 +38,21 @@ export class AuthController {
       success: true,
       result: null,
       message: 'Logout successful',
+    };
+  }
+
+  @Public()
+  @Post('driver-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Driver mobile app login' })
+  @ApiResponse({ status: 200, description: 'Driver login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  async driverLogin(@Body() loginDto: DriverLoginDto): Promise<ApiResponseDto<any>> {
+    const result = await this.authService.driverLogin(loginDto);
+    return {
+      success: true,
+      result,
+      message: 'Driver login successful',
     };
   }
 }

@@ -17,7 +17,7 @@ import {
   ArrowUpDownIcon,
   MoreVerticalIcon,
   PlusSignIcon,
-  Loading01Icon,
+  Orbit01Icon,
   FileSearchIcon,
   Search01Icon,
 } from '@hugeicons/core-free-icons';
@@ -121,26 +121,26 @@ const columns: ColumnDef<RFQ>[] = [
       const rfq = row.original;
       return (
         <div onClick={(e) => e.stopPropagation()} className="z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <HugeiconsIcon icon={MoreVerticalIcon} className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(rfq.id)}>
-              Copy RFQ ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setLocation(`/purchase/rfqs/${rfq.id}`)}>
-              View details
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLocation(`/purchase/rfqs/${rfq.id}/print`)}>
-              Print
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <HugeiconsIcon icon={MoreVerticalIcon} className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(rfq.id)}>
+                Copy RFQ ID
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setLocation(`/purchase/rfqs/${rfq.id}`)}>
+                View details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation(`/purchase/rfqs/${rfq.id}/print`)}>
+                Print
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       );
     },
@@ -225,7 +225,7 @@ export default function RFQsPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -282,12 +282,12 @@ export default function RFQsPage() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => setLocation(`/purchase/rfqs/${rfq.id}`)}
                       >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
                     );
                   })
                 ) : (

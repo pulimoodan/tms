@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   ArrowLeft01Icon,
   Calendar01Icon,
-  Loading01Icon,
+  Orbit01Icon,
   Building01Icon,
   PrinterIcon,
   Edit01Icon,
@@ -160,7 +160,7 @@ export default function RFQDetailsPage() {
   if (isLoading || !rfq) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -238,50 +238,52 @@ export default function RFQDetailsPage() {
             </CardHeader>
             <CardContent>
               <div className="w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
                       <TableHead className="w-[20%]">Product</TableHead>
                       <TableHead className="w-[35%]">Description</TableHead>
                       <TableHead className="w-[10%] text-right">Quantity</TableHead>
                       <TableHead className="w-[17.5%] text-right">Unit Price</TableHead>
                       <TableHead className="w-[17.5%] text-right">Total Price</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rfq.items && rfq.items.length > 0 ? (
-                    rfq.items.map((item: any) => (
-                      <TableRow key={item.id}>
-                          <TableCell className="font-medium">{getProductName(item.productId)}</TableCell>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rfq.items && rfq.items.length > 0 ? (
+                      rfq.items.map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">
+                            {getProductName(item.productId)}
+                          </TableCell>
                           <TableCell className="max-w-md">{item.description || '—'}</TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
                           <TableCell className="text-right">
-                          {item.unitPrice
-                            ? item.unitPrice.toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })
-                            : '—'}
-                        </TableCell>
+                            {item.unitPrice
+                              ? item.unitPrice.toLocaleString('en-US', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })
+                              : '—'}
+                          </TableCell>
                           <TableCell className="text-right font-medium">
-                          {item.totalPrice
-                            ? item.totalPrice.toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })
-                            : '—'}
+                            {item.totalPrice
+                              ? item.totalPrice.toLocaleString('en-US', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })
+                              : '—'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center">
+                          No items found
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center">
-                        No items found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>

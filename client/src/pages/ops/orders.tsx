@@ -20,7 +20,7 @@ import {
   FilterIcon,
   GridIcon,
   TableIcon,
-  Loading01Icon,
+  Orbit01Icon,
   PackageIcon,
   AlertCircleIcon,
   EyeIcon,
@@ -427,7 +427,7 @@ export default function OrdersPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

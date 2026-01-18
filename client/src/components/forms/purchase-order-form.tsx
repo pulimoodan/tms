@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
 import {
   ShoppingCartIcon,
-  Loading01Icon,
+  Orbit01Icon,
   PlusSignIcon,
   Delete01Icon,
   Location03Icon,
@@ -165,9 +165,7 @@ export function PurchaseOrderForm({
       issueDate: new Date().toISOString().split('T')[0],
       expectedDeliveryDate: '',
       description: '',
-      items: [
-        { productId: '', quantity: '', unitPrice: '', description: '' },
-      ],
+      items: [{ productId: '', quantity: '', unitPrice: '', description: '' }],
     },
   });
 
@@ -192,7 +190,9 @@ export function PurchaseOrderForm({
             supplierId: '1',
             pickingWarehouseId: locations[0]?.id || '',
             issueDate: new Date().toISOString().split('T')[0],
-            expectedDeliveryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            expectedDeliveryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split('T')[0],
             description: 'Sample purchase order description',
             items: [
               {
@@ -362,7 +362,7 @@ export function PurchaseOrderForm({
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -393,7 +393,9 @@ export function PurchaseOrderForm({
                     <FormControl>
                       <Input value={rfqId} disabled />
                     </FormControl>
-                    <FormDescription>This purchase order is created from RFQ {rfqId}</FormDescription>
+                    <FormDescription>
+                      This purchase order is created from RFQ {rfqId}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -720,7 +722,7 @@ export function PurchaseOrderForm({
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (
@@ -732,4 +734,3 @@ export function PurchaseOrderForm({
     </Form>
   );
 }
-

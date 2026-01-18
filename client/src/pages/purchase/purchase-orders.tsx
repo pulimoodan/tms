@@ -16,7 +16,7 @@ import {
 import {
   MoreVerticalIcon,
   PlusSignIcon,
-  Loading01Icon,
+  Orbit01Icon,
   ShoppingCartIcon,
   Search01Icon,
 } from '@hugeicons/core-free-icons';
@@ -130,29 +130,33 @@ const columns: ColumnDef<PurchaseOrder>[] = [
       const po = row.original;
       return (
         <div onClick={(e) => e.stopPropagation()} className="z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <HugeiconsIcon icon={MoreVerticalIcon} className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(po.id)}>
-              Copy PO ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setLocation(`/purchase/purchase-orders/${po.id}`)}>
-              View details
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLocation(`/purchase/purchase-orders/${po.id}/edit`)}>
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLocation(`/purchase/purchase-orders/${po.id}/print`)}>
-              Print
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <HugeiconsIcon icon={MoreVerticalIcon} className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(po.id)}>
+                Copy PO ID
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setLocation(`/purchase/purchase-orders/${po.id}`)}>
+                View details
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setLocation(`/purchase/purchase-orders/${po.id}/edit`)}
+              >
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setLocation(`/purchase/purchase-orders/${po.id}/print`)}
+              >
+                Print
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       );
     },
@@ -239,7 +243,7 @@ export default function PurchaseOrdersPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -296,12 +300,12 @@ export default function PurchaseOrdersPage() {
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => setLocation(`/purchase/purchase-orders/${po.id}`)}
                       >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
                     );
                   })
                 ) : (

@@ -135,6 +135,15 @@ export class VehiclesService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          driver: {
+            select: {
+              id: true,
+              name: true,
+              iqamaNumber: true,
+            },
+          },
+        },
       }),
       this.prisma.vehicle.count({ where }),
     ]);
@@ -251,6 +260,15 @@ export class VehiclesService {
   async findOne(id: string, companyId: string): Promise<Vehicle> {
     const vehicle = await this.prisma.vehicle.findFirst({
       where: { id, companyId },
+      include: {
+        driver: {
+          select: {
+            id: true,
+            name: true,
+            iqamaNumber: true,
+          },
+        },
+      },
     });
 
     if (!vehicle) {

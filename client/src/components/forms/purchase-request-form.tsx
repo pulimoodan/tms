@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
 import {
   File01Icon,
-  Loading01Icon,
+  Orbit01Icon,
   PlusSignIcon,
   Delete01Icon,
   Upload01Icon,
@@ -338,7 +338,7 @@ export function PurchaseRequestForm({
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -418,10 +418,7 @@ export function PurchaseRequestForm({
                               className="flex-1"
                             />
                             {isUploading && (
-                              <HugeiconsIcon
-                                icon={Loading01Icon}
-                                className="h-4 w-4 animate-spin"
-                              />
+                              <HugeiconsIcon icon={Orbit01Icon} className="h-4 w-4 animate-spin" />
                             )}
                           </div>
                         )}
@@ -522,9 +519,7 @@ export function PurchaseRequestForm({
                     <TableHead className="w-[18%]">Product *</TableHead>
                     <TableHead className="w-[28%]">Description</TableHead>
                     <TableHead className="w-[12%]">Quantity *</TableHead>
-                    <TableHead className="w-[18%]">
-                      Estimated Cost (SAR) *
-                    </TableHead>
+                    <TableHead className="w-[18%]">Estimated Cost (SAR) *</TableHead>
                     <TableHead className="w-[18%]">Proposed Vendor</TableHead>
                     <TableHead className="w-[6%]"></TableHead>
                   </TableRow>
@@ -707,7 +702,7 @@ export function PurchaseRequestForm({
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (

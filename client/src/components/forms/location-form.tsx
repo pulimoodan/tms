@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
-import { Location03Icon, Loading01Icon } from '@hugeicons/core-free-icons';
+import { Location03Icon, Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { fetchLocation, createLocation, updateLocation } from '@/lib/api-helpers';
@@ -133,7 +133,7 @@ export function LocationForm({
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -208,7 +208,7 @@ export function LocationForm({
           <Button type="submit" disabled={isSubmitting} data-testid="button-save-location">
             {isSubmitting ? (
               <>
-                <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (

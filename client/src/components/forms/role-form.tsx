@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { FloppyDiskIcon, ShieldIcon, Loading01Icon } from '@hugeicons/core-free-icons';
+import { FloppyDiskIcon, ShieldIcon, Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useToast } from '@/hooks/use-toast';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
@@ -246,7 +246,7 @@ export function RoleForm({ initialData, isEditMode = false, roleId, onComplete }
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -380,7 +380,7 @@ export function RoleForm({ initialData, isEditMode = false, roleId, onComplete }
           <Button type="submit" disabled={submitting}>
             {submitting ? (
               <>
-                <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                 {isEditMode ? 'Updating...' : 'Creating...'}
               </>
             ) : (

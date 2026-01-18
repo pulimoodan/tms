@@ -17,7 +17,7 @@ import {
   Building01Icon,
   CreditCardIcon,
   Clock01Icon,
-  Loading01Icon,
+  Orbit01Icon,
   ShippingTruck02Icon,
   Location03Icon,
 } from '@hugeicons/core-free-icons';
@@ -78,7 +78,7 @@ export default function ContractDetailsPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

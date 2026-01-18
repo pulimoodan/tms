@@ -104,4 +104,22 @@ export class CreateDriverDto {
   @IsOptional()
   @MaxLength(200)
   outsourcedCompanyName?: string;
+
+  @ApiPropertyOptional({
+    example: 'TAAM123456789',
+    description: 'TAAM ID for tracking traffic violations',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  taamId?: string;
+
+  @ApiPropertyOptional({
+    example: 'uuid-here',
+    description: 'Assigned vehicle ID (only Vehicle type, not attachments/accessories)',
+    format: 'uuid',
+  })
+  @IsString()
+  @IsOptional()
+  vehicleId?: string;
 }

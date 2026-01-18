@@ -6,7 +6,7 @@ import { useLocation } from 'wouter';
 import {
   ArrowLeft01Icon,
   Building02Icon,
-  Loading01Icon,
+  Orbit01Icon,
   FloppyDiskIcon,
 } from '@hugeicons/core-free-icons';
 import { PageTitle } from '@/components/ui/page-title';
@@ -163,7 +163,7 @@ export default function CompanyPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -485,7 +485,7 @@ export default function CompanyPage() {
             <Button type="submit" disabled={submitting}>
               {submitting ? (
                 <>
-                  <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                  <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                   Updating...
                 </>
               ) : (

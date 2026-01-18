@@ -10,7 +10,7 @@ import {
   ArrowLeft01Icon,
   File01Icon,
   Calendar01Icon,
-  Loading01Icon,
+  Orbit01Icon,
   AlertCircleIcon,
   CheckmarkCircle02Icon,
   ShoppingCart02Icon,
@@ -380,7 +380,7 @@ export default function PurchaseRequestDetailsPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -441,7 +441,7 @@ export default function PurchaseRequestDetailsPage() {
             <Button onClick={() => approveMutation.mutate()} disabled={approveMutation.isPending}>
               {approveMutation.isPending ? (
                 <>
-                  <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                  <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                   Approving...
                 </>
               ) : (
@@ -525,9 +525,7 @@ export default function PurchaseRequestDetailsPage() {
                           <TableCell className="font-medium">
                             {getProductName(item.productId)}
                           </TableCell>
-                          <TableCell className="max-w-md">
-                            {item.description || '—'}
-                          </TableCell>
+                          <TableCell className="max-w-md">{item.description || '—'}</TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
                           <TableCell className="text-right">
                             {item.estimatedCost?.toLocaleString('en-US', {
@@ -542,7 +540,9 @@ export default function PurchaseRequestDetailsPage() {
                                   icon={Building01Icon}
                                   className="h-4 w-4 text-muted-foreground shrink-0"
                                 />
-                                <span className="truncate">{getVendorName(item.proposedVendorId)}</span>
+                                <span className="truncate">
+                                  {getVendorName(item.proposedVendorId)}
+                                </span>
                               </div>
                             ) : (
                               '—'
@@ -827,7 +827,7 @@ export default function PurchaseRequestDetailsPage() {
             >
               {createRFQMutation.isPending ? (
                 <>
-                  <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                  <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                   Creating...
                 </>
               ) : (

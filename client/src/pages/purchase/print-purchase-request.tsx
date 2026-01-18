@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useLocation as useWouterLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { Loading01Icon } from '@hugeicons/core-free-icons';
+import { Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 
 // Dummy data for now
@@ -160,7 +160,7 @@ export default function PrintPurchaseRequestPage() {
   if (isLoading || !purchaseRequest) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

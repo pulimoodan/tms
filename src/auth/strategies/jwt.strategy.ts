@@ -14,6 +14,28 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    // Check if this is a driver token
+    if (payload.type === 'driver') {
+      const driver = await this.prisma.driver.findUnique({
+        where: { id: payload.sub || payload.driverId },
+        include: {
+          company: true,
+        },
+      });
+
+      if (!driver || driver.status !== 'Active') {
+        throw new UnauthorizedException('Driver not found or inactive');
+      }
+
+      const { passwordHash, ...driverWithoutPassword } = driver;
+      return {
+        ...driverWithoutPassword,
+        driverId: driver.id,
+        companyId: driver.companyId,
+      };
+    }
+
+    // Regular user authentication
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: {

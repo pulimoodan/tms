@@ -5,7 +5,7 @@ import { useBreadcrumb } from '@/context/breadcrumb-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft01Icon, Loading01Icon, PrinterIcon } from '@hugeicons/core-free-icons';
+import { ArrowLeft01Icon, Orbit01Icon, PrinterIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { format } from 'date-fns';
 import {
@@ -127,7 +127,7 @@ export default function PurchaseOrderDetailsPage() {
   if (isLoading || !purchaseOrder) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

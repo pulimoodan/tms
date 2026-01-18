@@ -267,19 +267,27 @@ export async function fetchDriver(id: string) {
   const response = await api.get(`/drivers/${id}`);
   if (response.data.success && response.data.result) {
     const driver = response.data.result;
-    return {
-      badgeNo: driver.badgeNo || '',
-      name: driver.name || '',
-      iqamaNumber: driver.iqamaNumber || '',
-      position: driver.position || undefined,
-      sponsorship: driver.sponsorship || '',
-      nationality: driver.nationality || '',
+    console.log('Raw driver data from API:', driver);
+    const formatted = {
+      badgeNo: driver.badgeNo ?? '',
+      name: driver.name ?? '',
+      iqamaNumber: driver.iqamaNumber ?? '',
+      position: driver.position ?? undefined,
+      sponsorship: driver.sponsorship ?? '',
+      nationality: driver.nationality ?? '',
       driverCardExpiry: driver.driverCardExpiry ? new Date(driver.driverCardExpiry).toISOString().split('T')[0] : '',
-      mobile: driver.mobile || '',
-      preferredLanguage: driver.preferredLanguage || '',
-      status: driver.status || 'Active',
+      mobile: driver.mobile ?? '',
+      preferredLanguage: driver.preferredLanguage ?? '',
+      ownershipType: driver.ownershipType ?? 'CompanyOwned',
+      outsourcedCompanyName: driver.outsourcedCompanyName ?? '',
+      status: driver.status ?? 'Active',
+      taamId: driver.taamId ?? '',
+      vehicleId: driver.vehicleId ?? '',
     };
+    console.log('Formatted driver data:', formatted);
+    return formatted;
   }
+  console.warn('No driver data in API response:', response.data);
   return null;
 }
 

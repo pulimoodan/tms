@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft01Icon, Loading01Icon, AlertCircleIcon } from '@hugeicons/core-free-icons';
+import { ArrowLeft01Icon, Orbit01Icon, AlertCircleIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Link } from 'wouter';
 import { api } from '@/lib/api';
@@ -43,7 +43,7 @@ export default function WaybillClosingPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

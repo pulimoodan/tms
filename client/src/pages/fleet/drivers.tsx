@@ -22,7 +22,7 @@ import {
   FilterIcon,
   GridIcon,
   TableIcon,
-  Loading01Icon,
+  Orbit01Icon,
   UserIcon,
   AlertCircleIcon,
   EyeIcon,
@@ -245,7 +245,11 @@ const columns: ColumnDef<Driver>[] = [
     header: 'Sponsorship',
     cell: ({ row }) => {
       const sponsorship = row.original.sponsorship;
-      return sponsorship ? <span>{sponsorship}</span> : <span className="text-muted-foreground">—</span>;
+      return sponsorship ? (
+        <span>{sponsorship}</span>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      );
     },
   },
   {
@@ -347,7 +351,7 @@ export default function DriversPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -515,10 +519,7 @@ export default function DriversPage() {
                           <div>
                             <div className="flex items-center justify-between gap-2 mb-2">
                               <h3 className="font-semibold text-base leading-tight flex items-center gap-2">
-                                <HugeiconsIcon
-                                  icon={UserIcon}
-                                  className="h-4 w-4 text-primary"
-                                />
+                                <HugeiconsIcon icon={UserIcon} className="h-4 w-4 text-primary" />
                                 {driver.name}
                               </h3>
                               {getStatusBadge(driver.status)}

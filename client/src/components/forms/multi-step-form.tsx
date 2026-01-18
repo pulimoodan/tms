@@ -3,7 +3,7 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
   FloppyDiskIcon,
-  Loading01Icon,
+  Orbit01Icon,
 } from '@hugeicons/core-free-icons';
 import { Button } from '@/components/ui/button';
 import { HugeiconsIcon, IconSvgElement } from '@hugeicons/react';
@@ -176,7 +176,7 @@ export function MultiStepForm({
             >
               {isSubmitting ? (
                 <>
-                  <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                  <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                   {submittingLabel}
                 </>
               ) : (

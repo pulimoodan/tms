@@ -21,7 +21,7 @@ import {
   FilterIcon,
   GridIcon,
   TableIcon,
-  Loading01Icon,
+  Orbit01Icon,
   UserIcon,
   AlertCircleIcon,
   EyeIcon,
@@ -162,7 +162,9 @@ function DriverActions({ driverId }: { driverId: string }) {
               Edit driver
             </DropdownMenuItem>
           )}
-          {hasUpdatePermission('Drivers') && hasDeletePermission('Drivers') && <DropdownMenuSeparator />}
+          {hasUpdatePermission('Drivers') && hasDeletePermission('Drivers') && (
+            <DropdownMenuSeparator />
+          )}
           {hasDeletePermission('Drivers') && (
             <DropdownMenuItem
               className="text-destructive"
@@ -254,7 +256,11 @@ const columns: ColumnDef<Driver>[] = [
     header: 'Sponsorship',
     cell: ({ row }) => {
       const sponsorship = row.original.sponsorship;
-      return sponsorship ? <span>{sponsorship}</span> : <span className="text-muted-foreground">—</span>;
+      return sponsorship ? (
+        <span>{sponsorship}</span>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      );
     },
   },
   {
@@ -364,7 +370,7 @@ export default function DriversPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -555,13 +561,17 @@ export default function DriversPage() {
                                   <HugeiconsIcon icon={IdentityCardIcon} className="h-3 w-3" />
                                   Badge
                                 </span>
-                                <span className="font-mono text-xs font-medium">{driver.badgeNo}</span>
+                                <span className="font-mono text-xs font-medium">
+                                  {driver.badgeNo}
+                                </span>
                               </div>
                             )}
                             {driver.position && (
                               <div className="flex justify-between items-start">
                                 <span className="text-muted-foreground text-xs">Position</span>
-                                <span className="font-medium text-right text-xs">{getPositionLabel(driver.position)}</span>
+                                <span className="font-medium text-right text-xs">
+                                  {getPositionLabel(driver.position)}
+                                </span>
                               </div>
                             )}
                             {driver.nationality && (
@@ -576,7 +586,9 @@ export default function DriversPage() {
                             {driver.sponsorship && (
                               <div className="flex justify-between items-start">
                                 <span className="text-muted-foreground text-xs">Sponsorship</span>
-                                <span className="font-medium text-right text-xs">{driver.sponsorship}</span>
+                                <span className="font-medium text-right text-xs">
+                                  {driver.sponsorship}
+                                </span>
                               </div>
                             )}
                             {driver.mobile && (

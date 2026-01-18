@@ -27,7 +27,7 @@ import {
   File01Icon,
   FolderAttachmentIcon,
   IdentityCardIcon,
-  Loading01Icon,
+  Orbit01Icon,
   Location03Icon,
   Task01Icon,
   PlusSignIcon,
@@ -172,7 +172,7 @@ const getFileUrl = (url: string) => {
 // Components
 const LoadingSpinner = ({ className }: { className?: string }) => (
   <HugeiconsIcon
-    icon={Loading01Icon}
+    icon={Orbit01Icon}
     className={`h-4 w-4 animate-spin text-muted-foreground ${className || ''}`}
   />
 );
@@ -971,7 +971,12 @@ export function CustomerForm({
                             });
                           }
                         }}
-                        disabled={!newRouteFrom || !newRouteTo || newRouteFrom === newRouteTo || createRouteMutation.isPending}
+                        disabled={
+                          !newRouteFrom ||
+                          !newRouteTo ||
+                          newRouteFrom === newRouteTo ||
+                          createRouteMutation.isPending
+                        }
                         className="mt-4"
                       >
                         <HugeiconsIcon icon={PlusSignIcon} className="mr-2 h-4 w-4" />
@@ -983,7 +988,10 @@ export function CustomerForm({
                       <h3 className="text-lg font-semibold mb-4">Existing Routes</h3>
                       {routes.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
-                          <HugeiconsIcon icon={Location03Icon} className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <HugeiconsIcon
+                            icon={Location03Icon}
+                            className="h-8 w-8 mx-auto mb-2 opacity-50"
+                          />
                           <p>No routes configured</p>
                         </div>
                       ) : (
@@ -1002,13 +1010,17 @@ export function CustomerForm({
                                   <TableCell>
                                     <div className="font-medium">{route.from.name}</div>
                                     {route.from.code && (
-                                      <div className="text-xs text-muted-foreground">{route.from.code}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {route.from.code}
+                                      </div>
                                     )}
                                   </TableCell>
                                   <TableCell>
                                     <div className="font-medium">{route.to.name}</div>
                                     {route.to.code && (
-                                      <div className="text-xs text-muted-foreground">{route.to.code}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {route.to.code}
+                                      </div>
                                     )}
                                   </TableCell>
                                   <TableCell>
@@ -1017,7 +1029,9 @@ export function CustomerForm({
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => {
-                                        if (confirm('Are you sure you want to delete this route?')) {
+                                        if (
+                                          confirm('Are you sure you want to delete this route?')
+                                        ) {
                                           deleteRouteMutation.mutate(route.id);
                                         }
                                       }}

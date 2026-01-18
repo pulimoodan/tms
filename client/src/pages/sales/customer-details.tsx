@@ -16,7 +16,7 @@ import {
   Calendar01Icon,
   Download01Icon,
   LinkSquare01Icon,
-  Loading01Icon,
+  Orbit01Icon,
   AlertCircleIcon,
   Delete01Icon,
   ArrowLeft02Icon,
@@ -100,7 +100,7 @@ export default function CustomerDetailsPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -383,7 +383,7 @@ export default function CustomerDetailsPage() {
                   {routesLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <HugeiconsIcon
-                        icon={Loading01Icon}
+                        icon={Orbit01Icon}
                         className="h-6 w-6 animate-spin text-primary"
                       />
                     </div>

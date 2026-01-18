@@ -23,7 +23,7 @@ import {
   ShippingTruck02Icon,
   Settings01Icon,
   File01Icon,
-  Loading01Icon,
+  Orbit01Icon,
   Image01Icon,
   Delete01Icon,
 } from '@hugeicons/core-free-icons';
@@ -406,7 +406,7 @@ export function VehicleForm({
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -535,7 +535,7 @@ export function VehicleForm({
                               />
                               {isUploadingImage && (
                                 <HugeiconsIcon
-                                  icon={Loading01Icon}
+                                  icon={Orbit01Icon}
                                   className="h-4 w-4 animate-spin"
                                 />
                               )}
@@ -813,11 +813,7 @@ export function VehicleForm({
                     <FormItem>
                       <FormLabel>Capacity</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="e.g., 25 TON"
-                          {...field}
-                          data-testid="input-capacity"
-                        />
+                        <Input placeholder="e.g., 25 TON" {...field} data-testid="input-capacity" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

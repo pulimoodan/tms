@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import {
   FloppyDiskIcon,
   UserIcon,
-  Loading01Icon,
+  Orbit01Icon,
   LockIcon,
   Mail01Icon,
   Edit01Icon,
@@ -259,7 +259,7 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -486,7 +486,7 @@ export default function ProfilePage() {
                   >
                     {isSubmitting ? (
                       <>
-                        <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                        <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                         Saving...
                       </>
                     ) : (

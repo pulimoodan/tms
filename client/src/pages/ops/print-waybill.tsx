@@ -3,7 +3,7 @@ import { useParams, useLocation as useWouterLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/auth-context';
-import { Loading01Icon } from '@hugeicons/core-free-icons';
+import { Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 
 export default function PrintWaybillPage() {
@@ -89,7 +89,7 @@ export default function PrintWaybillPage() {
   if (isLoadingOrder || isLoadingCompany || !order || !company) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -202,7 +202,7 @@ export default function PrintWaybillPage() {
 
         <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
           <tbody>
-        {order.contract?.contractNumber && (
+            {order.contract?.contractNumber && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold w-32">
                   Agreement NO:
@@ -275,14 +275,12 @@ export default function PrintWaybillPage() {
                 {order.temperature ? `${order.temperature}°C` : ''}
               </td>
             </tr>
-            {((order.containerNumber || (order.podNumber || order.podDocument))) && (
+            {(order.containerNumber || order.podNumber || order.podDocument) && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Container Number:
                 </td>
-                <td className="border border-gray-400 px-4 py-2">
-                  {order.containerNumber || ''}
-                </td>
+                <td className="border border-gray-400 px-4 py-2">{order.containerNumber || ''}</td>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   POD:
                 </td>
@@ -307,20 +305,20 @@ export default function PrintWaybillPage() {
                 <td className="border border-gray-400 px-4 py-2">{order.requestedTime || ''}</td>
               </tr>
             )}
-                {order.eta && (
+            {order.eta && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   ETA:
                 </td>
                 <td className="border border-gray-400 px-4 py-2" colSpan={3}>
-                    {(() => {
-                      const dt = formatDateTime(order.eta);
+                  {(() => {
+                    const dt = formatDateTime(order.eta);
                     return typeof dt === 'string' ? formatDate(order.eta) : `${dt.date} ${dt.time}`;
-                    })()}
+                  })()}
                 </td>
               </tr>
-                )}
-                {order.vesselName && (
+            )}
+            {order.vesselName && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Vessel Name:
@@ -329,8 +327,8 @@ export default function PrintWaybillPage() {
                   {order.vesselName}
                 </td>
               </tr>
-                )}
-                {order.croNumber && (
+            )}
+            {order.croNumber && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   CRO Number:
@@ -339,8 +337,8 @@ export default function PrintWaybillPage() {
                   {order.croNumber}
                 </td>
               </tr>
-                )}
-                {order.customerContact && (
+            )}
+            {order.customerContact && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Customer Contact:
@@ -349,8 +347,8 @@ export default function PrintWaybillPage() {
                   {order.customerContact}
                 </td>
               </tr>
-                )}
-                {order.transporter && (
+            )}
+            {order.transporter && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Transporter:
@@ -359,8 +357,8 @@ export default function PrintWaybillPage() {
                   {order.transporter}
                 </td>
               </tr>
-                )}
-                {order.portOfLoading && (
+            )}
+            {order.portOfLoading && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Port Of Loading:
@@ -369,8 +367,8 @@ export default function PrintWaybillPage() {
                   {order.portOfLoading}
                 </td>
               </tr>
-                )}
-                {order.shippingLine && (
+            )}
+            {order.shippingLine && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Shipping Line:
@@ -379,7 +377,7 @@ export default function PrintWaybillPage() {
                   {order.shippingLine}
                 </td>
               </tr>
-                )}
+            )}
           </tbody>
         </table>
 
@@ -395,8 +393,8 @@ export default function PrintWaybillPage() {
             </tr>
           </thead>
           <tbody>
-                {order.driver && (
-                  <>
+            {order.driver && (
+              <>
                 <tr>
                   <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold w-32">
                     Driver ID:
@@ -411,7 +409,7 @@ export default function PrintWaybillPage() {
                     {order.driver.name}
                   </td>
                 </tr>
-                    {order.driver.mobile && (
+                {order.driver.mobile && (
                   <tr>
                     <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                       Driver Mobile:
@@ -424,17 +422,17 @@ export default function PrintWaybillPage() {
                       {order.trailerNumber || order.attachment?.name || ''}
                     </td>
                   </tr>
-                    )}
-                  </>
                 )}
-                {order.vehicle && (
+              </>
+            )}
+            {order.vehicle && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Truck:
                 </td>
                 <td className="border border-gray-400 px-4 py-2">
                   {order.vehicle.plateNumber}
-                      {order.vehicle.chassisNo && ` (Chassis: ${order.vehicle.chassisNo})`}
+                  {order.vehicle.chassisNo && ` (Chassis: ${order.vehicle.chassisNo})`}
                 </td>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Door No.:
@@ -443,7 +441,7 @@ export default function PrintWaybillPage() {
                   {order.vehicle.doorNo || order.vehicle.plateNumber || ''}
                 </td>
               </tr>
-                )}
+            )}
             {order.attachment && !order.driver?.mobile && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
@@ -451,10 +449,10 @@ export default function PrintWaybillPage() {
                 </td>
                 <td className="border border-gray-400 px-4 py-2" colSpan={5}>
                   {order.attachment.name || ''}
-                      {order.attachment.chassisNo && ` (Chassis: ${order.attachment.chassisNo})`}
+                  {order.attachment.chassisNo && ` (Chassis: ${order.attachment.chassisNo})`}
                 </td>
               </tr>
-                )}
+            )}
             {order.accessories && order.accessories.length > 0 && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
@@ -472,9 +470,9 @@ export default function PrintWaybillPage() {
               </tr>
             )}
             {((order.startKms !== null && order.startKms !== undefined) ||
-            (order.kmOut !== null && order.kmOut !== undefined) ||
-            (order.kmIn !== null && order.kmIn !== undefined) ||
-            (order.runKm !== null && order.runKm !== undefined)) && (
+              (order.kmOut !== null && order.kmOut !== undefined) ||
+              (order.kmIn !== null && order.kmIn !== undefined) ||
+              (order.runKm !== null && order.runKm !== undefined)) && (
               <tr>
                 <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold">
                   Km Start:
@@ -504,195 +502,198 @@ export default function PrintWaybillPage() {
         </table>
 
         <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
-              <thead>
-                <tr>
+          <thead>
+            <tr>
               <th
                 colSpan={5}
                 className="border border-gray-400 px-3 py-1.5 bg-blue-200 font-bold text-left print:bg-blue-200"
               >
-                    Cargo Details
-                  </th>
-                </tr>
-                <tr>
+                Cargo Details
+              </th>
+            </tr>
+            <tr>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Sl No.
-                  </th>
+                Sl No.
+              </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Cargo Description
-                  </th>
+                Cargo Description
+              </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Wt (Ton)
-                  </th>
+                Wt (Ton)
+              </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Vol (m³)
-                  </th>
+                Vol (m³)
+              </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
-                    Value (SAR)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  // Use cargoItems array if available, otherwise fall back to single cargo fields
-                  const cargoItems = order.cargoItems && Array.isArray(order.cargoItems) && order.cargoItems.length > 0
-                    ? order.cargoItems
-                    : [{
+                Value (SAR)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {(() => {
+              // Use cargoItems array if available, otherwise fall back to single cargo fields
+              const cargoItems =
+                order.cargoItems && Array.isArray(order.cargoItems) && order.cargoItems.length > 0
+                  ? order.cargoItems
+                  : [
+                      {
                         description: order.cargoDescription || '',
                         weight: order.weight,
                         weightUom: order.weightUom || 'TON',
                         volume: order.volume,
                         value: order.value,
-                      }];
+                      },
+                    ];
 
-                  return cargoItems.map((cargo: any, index: number) => {
-                    // Convert weight to Ton
-                    const weightInTon = cargo.weight
-                      ? cargo.weightUom === 'KG'
-                        ? (Number(cargo.weight) / 1000).toFixed(3)
-                        : Number(cargo.weight).toFixed(3)
-                      : '';
+              return cargoItems.map((cargo: any, index: number) => {
+                // Convert weight to Ton
+                const weightInTon = cargo.weight
+                  ? cargo.weightUom === 'KG'
+                    ? (Number(cargo.weight) / 1000).toFixed(3)
+                    : Number(cargo.weight).toFixed(3)
+                  : '';
 
-                    return (
-                      <tr key={index}>
-                        <td className="border border-gray-400 px-3 py-1.5 text-center">
-                          {index + 1}
-                        </td>
-                        <td className="border border-gray-400 px-4 py-2">
-                          {cargo.description || cargo.cargoDescription || ''}
-                        </td>
-                        <td className="border border-gray-400 px-4 py-2">
-                          {weightInTon}
-                        </td>
-                        <td className="border border-gray-400 px-4 py-2">
-                          {cargo.volume ? Number(cargo.volume).toFixed(2) : ''}
-                        </td>
-                        <td className="border border-gray-400 px-4 py-2">
-                          {cargo.value ? Number(cargo.value).toLocaleString() : ''}
-                        </td>
-                      </tr>
-                    );
-                  });
-                })()}
-              </tbody>
-            </table>
+                return (
+                  <tr key={index}>
+                    <td className="border border-gray-400 px-3 py-1.5 text-center">{index + 1}</td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {cargo.description || cargo.cargoDescription || ''}
+                    </td>
+                    <td className="border border-gray-400 px-4 py-2">{weightInTon}</td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {cargo.volume ? Number(cargo.volume).toFixed(2) : ''}
+                    </td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {cargo.value ? Number(cargo.value).toLocaleString() : ''}
+                    </td>
+                  </tr>
+                );
+              });
+            })()}
+          </tbody>
+        </table>
 
         <table className="w-full text-xs print:text-xs border-collapse border border-gray-400 print-break-avoid">
-                <thead>
-                  <tr>
+          <thead>
+            <tr>
               <th
                 colSpan={5}
                 className="border border-gray-400 px-3 py-1.5 bg-blue-200 font-bold text-left print:bg-blue-200"
               >
                 Activities
-                    </th>
-                  </tr>
-                  <tr>
+              </th>
+            </tr>
+            <tr>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left w-16">
                 Sl No.
-                    </th>
+              </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                 Purpose
-                    </th>
+              </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                 Delivery Location
-                    </th>
+              </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                 Activity Date
-                    </th>
+              </th>
               <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold text-left">
                 Activity Time
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 text-center">1</td>
-                    <td className="border border-gray-400 px-4 py-2">Arrival at Loading</td>
-                    <td className="border border-gray-400 px-4 py-2">{order.from?.name || ''}</td>
-                    <td className="border border-gray-400 px-4 py-2">
-                      {order.arrivalAtLoading
-                        ? (() => {
-                            const dt = formatDateTime(order.arrivalAtLoading);
-                            return typeof dt === 'string' ? formatDate(order.arrivalAtLoading) : dt.date;
-                          })()
-                        : ''}
-                    </td>
-                    <td className="border border-gray-400 px-4 py-2">
-                      {order.arrivalAtLoading
-                        ? (() => {
-                            const dt = formatDateTime(order.arrivalAtLoading);
-                            return typeof dt === 'string' ? '' : dt.time;
-                          })()
-                        : ''}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 text-center">2</td>
-                    <td className="border border-gray-400 px-4 py-2">Loading Completed</td>
-                    <td className="border border-gray-400 px-4 py-2">{order.from?.name || ''}</td>
-                    <td className="border border-gray-400 px-4 py-2">
-                      {(order.completedLoading || order.dispatchFromLoading)
-                        ? (() => {
-                            const timestamp = order.completedLoading || order.dispatchFromLoading;
-                            const dt = formatDateTime(timestamp);
-                            return typeof dt === 'string' ? formatDate(timestamp) : dt.date;
-                          })()
-                        : ''}
-                    </td>
-                    <td className="border border-gray-400 px-4 py-2">
-                      {(order.completedLoading || order.dispatchFromLoading)
-                        ? (() => {
-                            const timestamp = order.completedLoading || order.dispatchFromLoading;
-                            const dt = formatDateTime(timestamp);
-                            return typeof dt === 'string' ? '' : dt.time;
-                          })()
-                        : ''}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 text-center">3</td>
-                    <td className="border border-gray-400 px-4 py-2">Arrival at Offloading</td>
-                    <td className="border border-gray-400 px-4 py-2">{order.to?.name || ''}</td>
-                    <td className="border border-gray-400 px-4 py-2">
-                      {order.arrivalAtOffloading
-                        ? (() => {
-                            const dt = formatDateTime(order.arrivalAtOffloading);
-                            return typeof dt === 'string' ? formatDate(order.arrivalAtOffloading) : dt.date;
-                          })()
-                        : ''}
-                    </td>
-                    <td className="border border-gray-400 px-4 py-2">
-                      {order.arrivalAtOffloading
-                        ? (() => {
-                            const dt = formatDateTime(order.arrivalAtOffloading);
-                            return typeof dt === 'string' ? '' : dt.time;
-                          })()
-                        : ''}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-gray-400 px-3 py-1.5 text-center">4</td>
-                    <td className="border border-gray-400 px-4 py-2">Offloading Completed</td>
-                    <td className="border border-gray-400 px-4 py-2">{order.to?.name || ''}</td>
-                    <td className="border border-gray-400 px-4 py-2">
-                      {order.completedUnloading
-                        ? (() => {
-                            const dt = formatDateTime(order.completedUnloading);
-                            return typeof dt === 'string' ? formatDate(order.completedUnloading) : dt.date;
-                          })()
-                        : ''}
-                    </td>
-                    <td className="border border-gray-400 px-4 py-2">
-                      {order.completedUnloading
-                        ? (() => {
-                            const dt = formatDateTime(order.completedUnloading);
-                            return typeof dt === 'string' ? '' : dt.time;
-                          })()
-                        : ''}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border border-gray-400 px-3 py-1.5 text-center">1</td>
+              <td className="border border-gray-400 px-4 py-2">Arrival at Loading</td>
+              <td className="border border-gray-400 px-4 py-2">{order.from?.name || ''}</td>
+              <td className="border border-gray-400 px-4 py-2">
+                {order.arrivalAtLoading
+                  ? (() => {
+                      const dt = formatDateTime(order.arrivalAtLoading);
+                      return typeof dt === 'string' ? formatDate(order.arrivalAtLoading) : dt.date;
+                    })()
+                  : ''}
+              </td>
+              <td className="border border-gray-400 px-4 py-2">
+                {order.arrivalAtLoading
+                  ? (() => {
+                      const dt = formatDateTime(order.arrivalAtLoading);
+                      return typeof dt === 'string' ? '' : dt.time;
+                    })()
+                  : ''}
+              </td>
+            </tr>
+            <tr>
+              <td className="border border-gray-400 px-3 py-1.5 text-center">2</td>
+              <td className="border border-gray-400 px-4 py-2">Loading Completed</td>
+              <td className="border border-gray-400 px-4 py-2">{order.from?.name || ''}</td>
+              <td className="border border-gray-400 px-4 py-2">
+                {order.completedLoading || order.dispatchFromLoading
+                  ? (() => {
+                      const timestamp = order.completedLoading || order.dispatchFromLoading;
+                      const dt = formatDateTime(timestamp);
+                      return typeof dt === 'string' ? formatDate(timestamp) : dt.date;
+                    })()
+                  : ''}
+              </td>
+              <td className="border border-gray-400 px-4 py-2">
+                {order.completedLoading || order.dispatchFromLoading
+                  ? (() => {
+                      const timestamp = order.completedLoading || order.dispatchFromLoading;
+                      const dt = formatDateTime(timestamp);
+                      return typeof dt === 'string' ? '' : dt.time;
+                    })()
+                  : ''}
+              </td>
+            </tr>
+            <tr>
+              <td className="border border-gray-400 px-3 py-1.5 text-center">3</td>
+              <td className="border border-gray-400 px-4 py-2">Arrival at Offloading</td>
+              <td className="border border-gray-400 px-4 py-2">{order.to?.name || ''}</td>
+              <td className="border border-gray-400 px-4 py-2">
+                {order.arrivalAtOffloading
+                  ? (() => {
+                      const dt = formatDateTime(order.arrivalAtOffloading);
+                      return typeof dt === 'string'
+                        ? formatDate(order.arrivalAtOffloading)
+                        : dt.date;
+                    })()
+                  : ''}
+              </td>
+              <td className="border border-gray-400 px-4 py-2">
+                {order.arrivalAtOffloading
+                  ? (() => {
+                      const dt = formatDateTime(order.arrivalAtOffloading);
+                      return typeof dt === 'string' ? '' : dt.time;
+                    })()
+                  : ''}
+              </td>
+            </tr>
+            <tr>
+              <td className="border border-gray-400 px-3 py-1.5 text-center">4</td>
+              <td className="border border-gray-400 px-4 py-2">Offloading Completed</td>
+              <td className="border border-gray-400 px-4 py-2">{order.to?.name || ''}</td>
+              <td className="border border-gray-400 px-4 py-2">
+                {order.completedUnloading
+                  ? (() => {
+                      const dt = formatDateTime(order.completedUnloading);
+                      return typeof dt === 'string'
+                        ? formatDate(order.completedUnloading)
+                        : dt.date;
+                    })()
+                  : ''}
+              </td>
+              <td className="border border-gray-400 px-4 py-2">
+                {order.completedUnloading
+                  ? (() => {
+                      const dt = formatDateTime(order.completedUnloading);
+                      return typeof dt === 'string' ? '' : dt.time;
+                    })()
+                  : ''}
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
         {/* Footer: Remarks and Condition */}
         {(order.remarks || order.recipientAcknowledgment) && (
@@ -722,7 +723,9 @@ export default function PrintWaybillPage() {
                     <td className="border border-gray-400 px-3 py-1.5 bg-gray-100 font-semibold w-32">
                       Condition:
                     </td>
-                    <td className="border border-gray-400 px-4 py-2">{order.recipientAcknowledgment}</td>
+                    <td className="border border-gray-400 px-4 py-2">
+                      {order.recipientAcknowledgment}
+                    </td>
                   </>
                 )}
               </tr>

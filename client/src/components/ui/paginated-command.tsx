@@ -7,7 +7,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Loading01Icon } from '@hugeicons/core-free-icons';
+import { Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 
 interface PaginatedCommandProps {
@@ -66,16 +66,12 @@ export function PaginatedCommand({
 
   return (
     <Command shouldFilter={false}>
-      <CommandInput
-        placeholder={placeholder}
-        value={search}
-        onValueChange={setSearch}
-      />
+      <CommandInput placeholder={placeholder} value={search} onValueChange={setSearch} />
       <CommandList ref={setListRef} className="max-h-[300px]">
         <CommandEmpty>
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
-              <HugeiconsIcon icon={Loading01Icon} className="h-4 w-4 animate-spin mr-2" />
+              <HugeiconsIcon icon={Orbit01Icon} className="h-4 w-4 animate-spin mr-2" />
               <span>Loading...</span>
             </div>
           ) : (
@@ -84,28 +80,21 @@ export function PaginatedCommand({
         </CommandEmpty>
         <CommandGroup>
           {items.map((item) => (
-            <CommandItem
-              key={item.id}
-              value={getItemValue(item)}
-              onSelect={() => onSelect(item)}
-            >
+            <CommandItem key={item.id} value={getItemValue(item)} onSelect={() => onSelect(item)}>
               {renderItem(item)}
             </CommandItem>
           ))}
           {isLoading && items.length > 0 && (
             <div className="flex items-center justify-center py-2">
-              <HugeiconsIcon icon={Loading01Icon} className="h-4 w-4 animate-spin mr-2" />
+              <HugeiconsIcon icon={Orbit01Icon} className="h-4 w-4 animate-spin mr-2" />
               <span className="text-sm text-muted-foreground">Loading more...</span>
             </div>
           )}
           {!hasMore && items.length > 0 && (
-            <div className="text-center py-2 text-xs text-muted-foreground">
-              No more items
-            </div>
+            <div className="text-center py-2 text-xs text-muted-foreground">No more items</div>
           )}
         </CommandGroup>
       </CommandList>
     </Command>
   );
 }
-

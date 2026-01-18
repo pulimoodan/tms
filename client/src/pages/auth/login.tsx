@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Loading01Icon } from '@hugeicons/core-free-icons';
+import { Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 
 const formSchema = z.object({
@@ -164,7 +164,7 @@ export default function LoginPage() {
                   disabled={isLoading}
                 >
                   {isLoading && (
-                    <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                    <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   Sign In
                 </Button>

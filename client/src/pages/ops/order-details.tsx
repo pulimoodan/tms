@@ -23,7 +23,7 @@ import {
   ShippingTruck02Icon,
   PrinterIcon,
   Edit01Icon,
-  Loading01Icon,
+  Orbit01Icon,
   UserIcon,
   Building01Icon,
   PackageIcon,
@@ -90,7 +90,7 @@ export default function OrderDetailsPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

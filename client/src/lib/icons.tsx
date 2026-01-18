@@ -12,7 +12,7 @@ export const IconRenderer = ({ name, className }: { name: string; className?: st
 };
 
 export const iconMap: Record<string, string> = {
-  Loader2: 'Loading01Icon',
+  Loader2: 'Orbit01Icon',
   ChevronRight: 'ArrowRight01Icon',
   ChevronDown: 'ArrowDown01Icon',
   ChevronUp: 'ArrowUp01Icon',

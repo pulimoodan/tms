@@ -19,7 +19,7 @@ import {
   PlusSignIcon,
   GridIcon,
   TableIcon,
-  Loading01Icon,
+  Orbit01Icon,
   Building01Icon,
   Search01Icon,
 } from '@hugeicons/core-free-icons';
@@ -250,7 +250,7 @@ export default function VendorsPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

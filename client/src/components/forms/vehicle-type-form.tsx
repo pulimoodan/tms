@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
-import { ShippingTruck02Icon, Loading01Icon } from '@hugeicons/core-free-icons';
+import { ShippingTruck02Icon, Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { fetchVehicleType, createVehicleType, updateVehicleType } from '@/lib/api-helpers';
@@ -149,7 +149,8 @@ export function VehicleTypeForm({
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.response?.data?.message || error.message || 'Failed to save vehicle type',
+        description:
+          error.response?.data?.message || error.message || 'Failed to save vehicle type',
       });
     } finally {
       setIsSubmitting(false);
@@ -159,7 +160,7 @@ export function VehicleTypeForm({
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -265,13 +266,11 @@ export function VehicleTypeForm({
           <Button type="submit" disabled={isSubmitting} data-testid="button-save-vehicle-type">
             {isSubmitting ? (
               <>
-                <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (
-              <>
-                {isEditMode ? 'Update Vehicle Type' : 'Create Vehicle Type'}
-              </>
+              <>{isEditMode ? 'Update Vehicle Type' : 'Create Vehicle Type'}</>
             )}
           </Button>
         </div>

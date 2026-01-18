@@ -20,36 +20,84 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { IdentityCardIcon, Loading01Icon } from '@hugeicons/core-free-icons';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  IdentityCardIcon,
+  Orbit01Icon,
+  ShippingTruck02Icon,
+  Call02Icon,
+  Settings01Icon,
+} from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useToast } from '@/hooks/use-toast';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
 import { fetchDriver, createDriver, updateDriver } from '@/lib/api-helpers';
+import { usePaginatedVehicles } from '@/hooks/use-paginated-vehicles';
+import { PaginatedCommand } from '@/components/ui/paginated-command';
+import { MultiStepForm, type Step } from './multi-step-form';
 
-const driverFormSchema = z.object({
-  badgeNo: z.string().max(50).optional(),
-  name: z.string().min(1, 'Name is required').min(2, 'Name must be at least 2 characters').max(100),
-  iqamaNumber: z.string().min(1, 'Iqama number is required').regex(/^\d{10}$/, 'Iqama number must be exactly 10 digits'),
-  position: z.enum(['HeavyDutyDriver', 'MediumTruckDriver', 'BusDriver']).optional(),
-  sponsorship: z.string().max(200).optional(),
-  nationality: z.string().min(1, 'Nationality is required'),
-  driverCardExpiry: z.string().optional(),
-  mobile: z.string().max(20).optional(),
-  preferredLanguage: z.string().optional(),
-  ownershipType: z.enum(['CompanyOwned', 'Outsourced']).optional(),
-  outsourcedCompanyName: z.string().max(200).optional(),
-  status: z.enum(['Active', 'OnTrip', 'Vacation', 'Inactive']).optional(),
-}).refine((data) => {
-  if (data.ownershipType === 'Outsourced' && !data.outsourcedCompanyName) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'Outsourced company name is required when ownership type is Outsourced',
-  path: ['outsourcedCompanyName'],
-});
+const driverFormSchema = z
+  .object({
+    badgeNo: z.string().max(50).optional(),
+    name: z
+      .string()
+      .min(1, 'Name is required')
+      .min(2, 'Name must be at least 2 characters')
+      .max(100),
+    iqamaNumber: z
+      .string()
+      .min(1, 'Iqama number is required')
+      .regex(/^\d{10}$/, 'Iqama number must be exactly 10 digits'),
+    position: z.enum(['HeavyDutyDriver', 'MediumTruckDriver', 'BusDriver']).optional(),
+    sponsorship: z.string().max(200).optional(),
+    nationality: z.string().min(1, 'Nationality is required'),
+    driverCardExpiry: z.string().optional(),
+    mobile: z.string().max(20).optional(),
+    preferredLanguage: z.string().optional(),
+    ownershipType: z.enum(['CompanyOwned', 'Outsourced']).optional(),
+    outsourcedCompanyName: z.string().max(200).optional(),
+    status: z.enum(['Active', 'OnTrip', 'Vacation', 'Inactive']).optional(),
+    taamId: z.string().max(50).optional(),
+    vehicleId: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.ownershipType === 'Outsourced' && !data.outsourcedCompanyName) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Outsourced company name is required when ownership type is Outsourced',
+      path: ['outsourcedCompanyName'],
+    },
+  );
 
 type DriverFormValues = z.infer<typeof driverFormSchema>;
+
+const STEPS: Step[] = [
+  {
+    number: 1,
+    title: 'Basic Information',
+    icon: IdentityCardIcon,
+    description: 'Driver name, identification and basic details',
+    fields: ['badgeNo', 'name', 'iqamaNumber', 'nationality', 'position', 'sponsorship'],
+  },
+  {
+    number: 2,
+    title: 'Contact & Details',
+    icon: Call02Icon,
+    description: 'Contact information and ownership details',
+    fields: ['mobile', 'preferredLanguage', 'driverCardExpiry', 'ownershipType', 'outsourcedCompanyName'],
+  },
+  {
+    number: 3,
+    title: 'Assignment & Status',
+    icon: Settings01Icon,
+    description: 'Vehicle assignment and driver status',
+    fields: ['taamId', 'vehicleId', 'status'],
+  },
+];
 
 const NATIONALITIES = [
   'Saudi Arabia',
@@ -99,12 +147,20 @@ interface DriverFormProps {
   onComplete?: () => void;
 }
 
-export function DriverForm({ initialData, isEditMode = false, driverId, onComplete }: DriverFormProps) {
+export function DriverForm({
+  initialData,
+  isEditMode = false,
+  driverId,
+  onComplete,
+}: DriverFormProps) {
   const { toast } = useToast();
   const { setEntityLabel } = useBreadcrumb();
+  const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingDriver, setExistingDriver] = useState<any>(null);
+  const [vehicleOpen, setVehicleOpen] = useState(false);
+  const vehiclesData = usePaginatedVehicles({ type: 'Vehicle' });
 
   const form = useForm<DriverFormValues>({
     resolver: zodResolver(driverFormSchema),
@@ -121,35 +177,120 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
       ownershipType: 'CompanyOwned',
       outsourcedCompanyName: '',
       status: 'Active',
+      taamId: '',
+      vehicleId: '',
     },
   });
 
   useEffect(() => {
-    async function loadDriver() {
-      if (isEditMode && driverId) {
-        setIsLoading(true);
-        try {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        if (isEditMode && driverId) {
+          console.log('Loading driver data for ID:', driverId);
           const driverData = await fetchDriver(driverId);
+          console.log('Fetched driver data:', driverData);
           if (driverData) {
             setExistingDriver(driverData);
-            form.reset(driverData);
+            const formData = {
+              badgeNo: driverData.badgeNo || '',
+              name: driverData.name || '',
+              iqamaNumber: driverData.iqamaNumber || '',
+              position: driverData.position || undefined,
+              sponsorship: driverData.sponsorship || '',
+              nationality: driverData.nationality || '',
+              driverCardExpiry: driverData.driverCardExpiry || '',
+              mobile: driverData.mobile || '',
+              preferredLanguage: driverData.preferredLanguage || '',
+              ownershipType: driverData.ownershipType || 'CompanyOwned',
+              outsourcedCompanyName: driverData.outsourcedCompanyName || '',
+              status: driverData.status || 'Active',
+              taamId: driverData.taamId || '',
+              vehicleId: driverData.vehicleId || '',
+            };
+            console.log('Resetting form with data:', formData);
+            form.reset(formData);
+            // Log form values after reset to verify
+            setTimeout(() => {
+              console.log('Form values after reset:', form.getValues());
+            }, 100);
+            // Ensure the selected vehicle is loaded
+            if (driverData.vehicleId) {
+              vehiclesData.ensureVehicleLoaded(driverData.vehicleId);
+            }
+            if (driverData.name) {
+              setEntityLabel(driverData.name);
+            }
+          } else {
+            console.warn('No driver data returned from API');
           }
-        } catch (error: any) {
-          toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: error.message || 'Failed to load driver data',
-  });
-        } finally {
-          setIsLoading(false);
+        } else if (initialData) {
+          form.reset({
+            badgeNo: initialData.badgeNo || '',
+            name: initialData.name || '',
+            iqamaNumber: initialData.iqamaNumber || '',
+            position: initialData.position || undefined,
+            sponsorship: initialData.sponsorship || '',
+            nationality: initialData.nationality || '',
+            driverCardExpiry: initialData.driverCardExpiry || '',
+            mobile: initialData.mobile || '',
+            preferredLanguage: initialData.preferredLanguage || '',
+            ownershipType: initialData.ownershipType || 'CompanyOwned',
+            outsourcedCompanyName: initialData.outsourcedCompanyName || '',
+            status: initialData.status || 'Active',
+            taamId: initialData.taamId || '',
+            vehicleId: initialData.vehicleId || '',
+          });
+          if (initialData.vehicleId) {
+            vehiclesData.ensureVehicleLoaded(initialData.vehicleId);
+          }
+          if (initialData.name) {
+            setEntityLabel(initialData.name);
+          }
+        } else {
+          setEntityLabel(null);
         }
-      } else if (initialData) {
-        form.reset(initialData);
+      } catch (error: any) {
+        console.error('Error loading driver data:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'Failed to load data',
+        });
+      } finally {
+        setIsLoading(false);
       }
     }
-    loadDriver();
+    loadData();
     return () => setEntityLabel(null);
-  }, [isEditMode, driverId, setEntityLabel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, driverId, setEntityLabel, toast]);
+
+  // Ensure selected vehicle is loaded when form value changes
+  const vehicleId = form.watch('vehicleId');
+  useEffect(() => {
+    if (vehicleId && !vehiclesData.vehicles.some((v) => v.id === vehicleId)) {
+      vehiclesData.ensureVehicleLoaded(vehicleId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleId]);
+
+  const handleNextStep = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const currentStepData = STEPS[step - 1];
+    if (!currentStepData?.fields) return;
+    const isValid = await form.trigger(currentStepData.fields as any);
+    if (isValid && step < STEPS.length) {
+      setStep(step + 1);
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
 
   async function onSubmit(values: DriverFormValues) {
     setIsSubmitting(true);
@@ -167,6 +308,8 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
         ownershipType: values.ownershipType || 'CompanyOwned',
         outsourcedCompanyName: values.outsourcedCompanyName || undefined,
         status: values.status || 'Active',
+        taamId: values.taamId || undefined,
+        vehicleId: values.vehicleId || undefined,
       };
 
       if (isEditMode) {
@@ -188,7 +331,8 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
       toast({
         variant: 'destructive',
         title: 'Submission Failed',
-        description: error.response?.data?.message || error.message || 'An unexpected error occurred.',
+        description:
+          error.response?.data?.message || error.message || 'An unexpected error occurred.',
       });
     } finally {
       setIsSubmitting(false);
@@ -198,24 +342,26 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <HugeiconsIcon icon={IdentityCardIcon} className="h-5 w-5 text-primary" />
-              Driver Information
-            </h2>
-            <p className="text-muted-foreground mt-1">Enter driver details and contact information</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <MultiStepForm
+          steps={STEPS}
+          currentStep={step}
+          onNext={handleNextStep}
+          onPrev={handlePrevStep}
+          isSubmitting={isSubmitting}
+          submitLabel={isEditMode ? 'Update Driver' : 'Add Driver'}
+          submittingLabel={isEditMode ? 'Updating...' : 'Creating...'}
+        >
+          {step === 1 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="badgeNo"
@@ -231,19 +377,19 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
               )}
             />
 
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name *</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Ahmed Ali" {...field} data-testid="input-name" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Ahmed Ali" {...field} data-testid="input-name" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -325,7 +471,11 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
                 <FormItem>
                   <FormLabel>Sponsorship</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Company Name" {...field} data-testid="input-sponsorship" />
+                    <Input
+                      placeholder="e.g., Company Name"
+                      {...field}
+                      data-testid="input-sponsorship"
+                    />
                   </FormControl>
                   <FormDescription>Optional</FormDescription>
                   <FormMessage />
@@ -333,23 +483,27 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
               )}
             />
           </div>
+            </div>
+          )}
 
-          <FormField
-            control={form.control}
-            name="driverCardExpiry"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Driver Card Expiry Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} data-testid="input-driver-card-expiry" />
-                </FormControl>
-                <FormDescription>Optional</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {step === 2 && (
+            <div className="space-y-6">
+              <FormField
+                control={form.control}
+                name="driverCardExpiry"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Driver Card Expiry Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} data-testid="input-driver-card-expiry" />
+                    </FormControl>
+                    <FormDescription>Optional</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="mobile"
@@ -424,7 +578,9 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
                   <FormItem>
                     <FormLabel>
                       Outsourced Company Name
-                      {ownershipType === 'Outsourced' && <span className="text-destructive"> *</span>}
+                      {ownershipType === 'Outsourced' && (
+                        <span className="text-destructive"> *</span>
+                      )}
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -444,46 +600,150 @@ export function DriverForm({ initialData, isEditMode = false, driverId, onComple
                 );
               }}
             />
-          </div>
+              </div>
+            </div>
+          )}
 
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || undefined}>
-                  <FormControl>
-                    <SelectTrigger data-testid="select-status">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="OnTrip">On Trip</SelectItem>
-                    <SelectItem value="Vacation">Vacation</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+          {step === 3 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="taamId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>TAAM ID</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., TAAM123456789"
+                          {...field}
+                          data-testid="input-taam-id"
+                        />
+                      </FormControl>
+                      <FormDescription>Optional - For tracking traffic violations</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button
-            type="submit"
-            data-testid="button-save-driver"
-            className="bg-primary hover:bg-primary/90"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            {isEditMode ? 'Update Driver' : 'Create Driver'}
-          </Button>
-        </div>
+                <FormField
+                  control={form.control}
+                  name="vehicleId"
+              render={({ field }) => {
+                const selectedVehicle = vehiclesData.vehicles.find(
+                  (v: any) => v.id === field.value,
+                );
+                return (
+                  <FormItem>
+                    <FormLabel>Assigned Vehicle</FormLabel>
+                    <div className="flex gap-2">
+                      <Popover open={vehicleOpen} onOpenChange={setVehicleOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="flex-1 justify-between"
+                              data-testid="select-vehicle"
+                            >
+                              {selectedVehicle
+                                ? `${selectedVehicle.name || 'Unnamed'}${selectedVehicle.plateNumber ? ` - ${selectedVehicle.plateNumber}` : ''}`
+                                : 'Select vehicle (optional)'}
+                              <HugeiconsIcon
+                                icon={ShippingTruck02Icon}
+                                className="ml-2 h-4 w-4 shrink-0 opacity-50"
+                              />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <PaginatedCommand
+                            items={vehiclesData.vehicles}
+                            isLoading={vehiclesData.isLoading}
+                            hasMore={vehiclesData.hasMore}
+                            onLoadMore={vehiclesData.loadMore}
+                            onSelect={(vehicle) => {
+                              field.onChange(vehicle.id);
+                              setVehicleOpen(false);
+                            }}
+                            searchValue={vehiclesData.searchQuery}
+                            onSearchChange={vehiclesData.setSearchQuery}
+                            placeholder="Search vehicles by door no, asset no, name, or chassis no..."
+                            emptyMessage="No vehicles found."
+                            renderItem={(vehicle) => (
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span>
+                                    {vehicle.name || 'Unnamed'}{vehicle.plateNumber ? ` - ${vehicle.plateNumber}` : ''}
+                                  </span>
+                                  {vehicle.isInUse && (
+                                    <span className="text-xs bg-red-500/15 text-red-700 dark:text-red-400 px-2 py-0.5 rounded">
+                                      In Use
+                                    </span>
+                                  )}
+                                </div>
+                                {(vehicle.doorNo || vehicle.asset) && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {[vehicle.doorNo, vehicle.asset]
+                                      .filter(Boolean)
+                                      .join(' / ')}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            getItemValue={(vehicle) =>
+                              `${vehicle.doorNo || ''} ${vehicle.asset || ''} ${vehicle.name || ''} ${vehicle.chassisNo || ''}`
+                            }
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {field.value && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            field.onChange('');
+                          }}
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                    <FormDescription>Optional - Only Vehicle type (not attachments/accessories)</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-status">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="OnTrip">On Trip</SelectItem>
+                        <SelectItem value="Vacation">Vacation</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+        </MultiStepForm>
       </form>
     </Form>
   );

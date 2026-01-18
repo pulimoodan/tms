@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useBreadcrumb } from '@/context/breadcrumb-context';
-import { CreditCardIcon, Loading01Icon } from '@hugeicons/core-free-icons';
+import { CreditCardIcon, Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { fetchCreditTerm, createCreditTerm, updateCreditTerm } from '@/lib/api-helpers';
@@ -144,7 +144,7 @@ export function CreditTermForm({
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -242,13 +242,11 @@ export function CreditTermForm({
           <Button type="submit" disabled={isSubmitting} data-testid="button-save-credit-term">
             {isSubmitting ? (
               <>
-                <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (
-              <>
-                {isEditMode ? 'Update Credit Term' : 'Create Credit Term'}
-              </>
+              <>{isEditMode ? 'Update Credit Term' : 'Create Credit Term'}</>
             )}
           </Button>
         </div>

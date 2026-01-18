@@ -19,7 +19,7 @@ import {
   PlusSignIcon,
   GridIcon,
   TableIcon,
-  Loading01Icon,
+  Orbit01Icon,
   File01Icon,
   Search01Icon,
 } from '@hugeicons/core-free-icons';
@@ -242,7 +242,7 @@ export default function PurchaseRequestsPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -349,12 +349,12 @@ export default function PurchaseRequestsPage() {
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => setLocation(`/purchase/purchase-requests/${pr.id}`)}
                         >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
                       );
                     })
                   ) : (

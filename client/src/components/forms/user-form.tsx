@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { FloppyDiskIcon, UserIcon, Loading01Icon } from '@hugeicons/core-free-icons';
+import { FloppyDiskIcon, UserIcon, Orbit01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useToast } from '@/hooks/use-toast';
 import { fetchRoles, fetchUser, createUser, updateUser } from '@/lib/api-helpers';
@@ -145,7 +145,7 @@ export function UserForm({ initialData, isEditMode = false, userId, onComplete }
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -269,7 +269,7 @@ export function UserForm({ initialData, isEditMode = false, userId, onComplete }
           <Button type="submit" disabled={submitting}>
             {submitting ? (
               <>
-                <HugeiconsIcon icon={Loading01Icon} className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Orbit01Icon} className="mr-2 h-4 w-4 animate-spin" />
                 {isEditMode ? 'Updating...' : 'Creating...'}
               </>
             ) : (

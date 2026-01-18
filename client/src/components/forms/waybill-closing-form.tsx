@@ -31,7 +31,7 @@ import {
   PackageIcon,
   FileVerifiedIcon,
   CheckmarkCircle02Icon,
-  Loading01Icon,
+  Orbit01Icon,
   Delete01Icon,
   File01Icon,
   AlertCircleIcon,
@@ -44,15 +44,15 @@ import { MultiStepForm, type Step } from './multi-step-form';
 
 const createWaybillClosingSchema = (startKms: number) =>
   z
-  .object({
-    arrivalAtLoadingDate: z.string().min(1, 'Arrival at Loading date is required'),
-    arrivalAtLoadingTime: z.string().min(1, 'Arrival at Loading time is required'),
-    dispatchFromLoadingDate: z.string().min(1, 'Loading Completed date is required'),
-    dispatchFromLoadingTime: z.string().min(1, 'Loading Completed time is required'),
-    arrivalAtOffloadingDate: z.string().min(1, 'Arrival at Offloading date is required'),
-    arrivalAtOffloadingTime: z.string().min(1, 'Arrival at Offloading time is required'),
-    completedUnloadingDate: z.string().min(1, 'Completed Unloading date is required'),
-    completedUnloadingTime: z.string().min(1, 'Completed Unloading time is required'),
+    .object({
+      arrivalAtLoadingDate: z.string().min(1, 'Arrival at Loading date is required'),
+      arrivalAtLoadingTime: z.string().min(1, 'Arrival at Loading time is required'),
+      dispatchFromLoadingDate: z.string().min(1, 'Loading Completed date is required'),
+      dispatchFromLoadingTime: z.string().min(1, 'Loading Completed time is required'),
+      arrivalAtOffloadingDate: z.string().min(1, 'Arrival at Offloading date is required'),
+      arrivalAtOffloadingTime: z.string().min(1, 'Arrival at Offloading time is required'),
+      completedUnloadingDate: z.string().min(1, 'Completed Unloading date is required'),
+      completedUnloadingTime: z.string().min(1, 'Completed Unloading time is required'),
       kmIn: z
         .string()
         .min(1, 'Closing KMs is required')
@@ -70,58 +70,58 @@ const createWaybillClosingSchema = (startKms: number) =>
       remarks: z.string().optional(),
       recipientAcknowledgment: z.enum(['Good', 'Fully Received', 'Broken', 'Partially']).optional(),
     })
-  .superRefine((data, ctx) => {
-    // Validate chronological order with specific field errors
-    const getDateTime = (date: string | undefined, time: string | undefined) => {
-      if (!date || !time) return null;
-      try {
-        return new Date(`${date}T${time}`);
-      } catch {
-        return null;
+    .superRefine((data, ctx) => {
+      // Validate chronological order with specific field errors
+      const getDateTime = (date: string | undefined, time: string | undefined) => {
+        if (!date || !time) return null;
+        try {
+          return new Date(`${date}T${time}`);
+        } catch {
+          return null;
+        }
+      };
+
+      const arrivalAtLoading = getDateTime(data.arrivalAtLoadingDate, data.arrivalAtLoadingTime);
+      const dispatchFromLoading = getDateTime(
+        data.dispatchFromLoadingDate,
+        data.dispatchFromLoadingTime,
+      );
+      const arrivalAtOffloading = getDateTime(
+        data.arrivalAtOffloadingDate,
+        data.arrivalAtOffloadingTime,
+      );
+      const completedUnloading = getDateTime(
+        data.completedUnloadingDate,
+        data.completedUnloadingTime,
+      );
+
+      // Arrival at Loading <= Loading Completed
+      if (arrivalAtLoading && dispatchFromLoading && arrivalAtLoading > dispatchFromLoading) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Loading Completed must be after Arrival at Loading',
+          path: ['dispatchFromLoadingDate'], // Set error on date field since DateTimePickerSingle uses date field
+        });
       }
-    };
 
-    const arrivalAtLoading = getDateTime(data.arrivalAtLoadingDate, data.arrivalAtLoadingTime);
-    const dispatchFromLoading = getDateTime(
-      data.dispatchFromLoadingDate,
-      data.dispatchFromLoadingTime,
-    );
-    const arrivalAtOffloading = getDateTime(
-      data.arrivalAtOffloadingDate,
-      data.arrivalAtOffloadingTime,
-    );
-    const completedUnloading = getDateTime(
-      data.completedUnloadingDate,
-      data.completedUnloadingTime,
-    );
+      // Loading Completed <= Arrival at Offloading
+      if (dispatchFromLoading && arrivalAtOffloading && dispatchFromLoading > arrivalAtOffloading) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Arrival at Offloading must be after Loading Completed',
+          path: ['arrivalAtOffloadingDate'], // Set error on date field since DateTimePickerSingle uses date field
+        });
+      }
 
-    // Arrival at Loading <= Loading Completed
-    if (arrivalAtLoading && dispatchFromLoading && arrivalAtLoading > dispatchFromLoading) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Loading Completed must be after Arrival at Loading',
-        path: ['dispatchFromLoadingDate'], // Set error on date field since DateTimePickerSingle uses date field
-      });
-    }
-
-    // Loading Completed <= Arrival at Offloading
-    if (dispatchFromLoading && arrivalAtOffloading && dispatchFromLoading > arrivalAtOffloading) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Arrival at Offloading must be after Loading Completed',
-        path: ['arrivalAtOffloadingDate'], // Set error on date field since DateTimePickerSingle uses date field
-      });
-    }
-
-    // Arrival at Offloading <= Completed Unloading
-    if (arrivalAtOffloading && completedUnloading && arrivalAtOffloading > completedUnloading) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Completed Unloading must be after Arrival at Offloading',
-        path: ['completedUnloadingDate'], // Set error on date field since DateTimePickerSingle uses date field
-      });
-    }
-  });
+      // Arrival at Offloading <= Completed Unloading
+      if (arrivalAtOffloading && completedUnloading && arrivalAtOffloading > completedUnloading) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Completed Unloading must be after Arrival at Offloading',
+          path: ['completedUnloadingDate'], // Set error on date field since DateTimePickerSingle uses date field
+        });
+      }
+    });
 
 type WaybillClosingFormValues = z.infer<ReturnType<typeof createWaybillClosingSchema>>;
 
@@ -485,11 +485,11 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
       ];
       // Validate all timestamp fields together - this will trigger superRefine for chronological order
       isValid = await form.trigger(timestampFields as any);
-    } 
+    }
     // For step 2, validate kmIn field (which includes the >= startKms check via refine)
     else if (step === 2) {
       isValid = await form.trigger('kmIn');
-    } 
+    }
     // For other steps, validate current step fields
     else {
       isValid = await form.trigger(currentStepData.fields as any);
@@ -618,7 +618,7 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -934,7 +934,7 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
                               />
                               {isUploadingPod && (
                                 <HugeiconsIcon
-                                  icon={Loading01Icon}
+                                  icon={Orbit01Icon}
                                   className="h-4 w-4 animate-spin text-primary"
                                 />
                               )}

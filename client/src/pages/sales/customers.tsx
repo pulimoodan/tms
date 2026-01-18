@@ -21,7 +21,7 @@ import {
   FilterIcon,
   GridIcon,
   TableIcon,
-  Loading01Icon,
+  Orbit01Icon,
   Building01Icon,
   Location03Icon,
   File01Icon,
@@ -82,7 +82,9 @@ function CustomerActions({ customerId }: { customerId: string }) {
               Edit customer
             </DropdownMenuItem>
           )}
-          {hasUpdatePermission('Customers') && hasDeletePermission('Customers') && <DropdownMenuSeparator />}
+          {hasUpdatePermission('Customers') && hasDeletePermission('Customers') && (
+            <DropdownMenuSeparator />
+          )}
           {hasDeletePermission('Customers') && (
             <DropdownMenuItem className="text-destructive">Delete customer</DropdownMenuItem>
           )}
@@ -285,7 +287,7 @@ export default function CustomersPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <HugeiconsIcon icon={Loading01Icon} className="h-8 w-8 animate-spin text-primary" />
+        <HugeiconsIcon icon={Orbit01Icon} className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

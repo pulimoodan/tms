@@ -122,4 +122,15 @@ export class CreateDriverDto {
   @IsString()
   @IsOptional()
   vehicleId?: string;
+
+  @ApiPropertyOptional({
+    example: 'password123',
+    description: 'Password for mobile app login (will be hashed)',
+    minLength: 4,
+  })
+  @IsString()
+  @IsOptional()
+  @MinLength(4, { message: 'Password must be at least 4 characters long' })
+  @MaxLength(100)
+  password?: string;
 }

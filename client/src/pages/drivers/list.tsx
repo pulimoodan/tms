@@ -33,6 +33,7 @@ import {
   LanguageSquareIcon,
   Search01Icon,
   Languages,
+  LockIcon,
 } from '@hugeicons/core-free-icons';
 import { PageTitle } from '@/components/ui/page-title';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -61,6 +62,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/use-permissions';
+import { DriverPasswordModal } from '@/components/drivers/driver-password-modal';
 
 type Driver = {
   id: string;
@@ -111,11 +113,12 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-function DriverActions({ driverId }: { driverId: string }) {
+function DriverActions({ driverId, driverName }: { driverId: string; driverName: string }) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { hasUpdatePermission, hasDeletePermission } = usePermissions();
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -157,10 +160,16 @@ function DriverActions({ driverId }: { driverId: string }) {
             View details
           </DropdownMenuItem>
           {hasUpdatePermission('Drivers') && (
-            <DropdownMenuItem onClick={() => setLocation(`/drivers/list/${driverId}/edit`)}>
-              <HugeiconsIcon icon={Edit01Icon} className="mr-2 h-4 w-4" />
-              Edit driver
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem onClick={() => setLocation(`/drivers/list/${driverId}/edit`)}>
+                <HugeiconsIcon icon={Edit01Icon} className="mr-2 h-4 w-4" />
+                Edit driver
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)}>
+                <HugeiconsIcon icon={LockIcon} className="mr-2 h-4 w-4" />
+                Set Password
+              </DropdownMenuItem>
+            </>
           )}
           {hasUpdatePermission('Drivers') && hasDeletePermission('Drivers') && (
             <DropdownMenuSeparator />
@@ -181,6 +190,12 @@ function DriverActions({ driverId }: { driverId: string }) {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      <DriverPasswordModal
+        driverId={driverId}
+        driverName={driverName}
+        open={isPasswordModalOpen}
+        onOpenChange={setIsPasswordModalOpen}
+      />
     </div>
   );
 }
@@ -310,7 +325,7 @@ const columns: ColumnDef<Driver>[] = [
   },
   {
     id: 'actions',
-    cell: ({ row }) => <DriverActions driverId={row.original.id} />,
+    cell: ({ row }) => <DriverActions driverId={row.original.id} driverName={row.original.name} />,
   },
 ];
 
@@ -614,7 +629,7 @@ export default function DriversPage() {
                           </div>
 
                           <div className="flex gap-2 mt-auto">
-                            <DriverActions driverId={driver.id} />
+                            <DriverActions driverId={driver.id} driverName={driver.name} />
                           </div>
                         </div>
                       </CardContent>

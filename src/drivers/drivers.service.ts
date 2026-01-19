@@ -4,6 +4,7 @@ import { CreateDriverDto } from './dto/create-driver.dto';
 import { UpdateDriverDto } from './dto/update-driver.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
 import { Driver } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class DriversService {
@@ -50,6 +51,13 @@ export class DriversService {
       }
     }
 
+    // Hash password if provided
+    let passwordHash: string | null = null;
+    if (createDriverDto.password) {
+      const saltRounds = 10;
+      passwordHash = await bcrypt.hash(createDriverDto.password, saltRounds);
+    }
+
     return this.prisma.driver.create({
       data: {
         companyId,
@@ -69,6 +77,7 @@ export class DriversService {
         status: createDriverDto.status || 'Active',
         taamId: createDriverDto.taamId || null,
         vehicleId: createDriverDto.vehicleId || null,
+        passwordHash,
         createdById: userId,
         updatedById: userId,
       },
@@ -260,6 +269,17 @@ export class DriversService {
         }
       }
       updateData.vehicleId = updateDriverDto.vehicleId || null;
+    }
+
+    // Hash password if provided (only update if password is provided)
+    if (updateDriverDto.password !== undefined) {
+      if (updateDriverDto.password) {
+        const saltRounds = 10;
+        updateData.passwordHash = await bcrypt.hash(updateDriverDto.password, saltRounds);
+      } else {
+        // If password is empty string, set to null (remove password)
+        updateData.passwordHash = null;
+      }
     }
 
     return this.prisma.driver.update({

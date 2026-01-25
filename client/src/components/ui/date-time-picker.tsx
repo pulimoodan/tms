@@ -34,8 +34,19 @@ export function DateTimePicker({
   minTime,
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false);
-  const date = dateValue ? new Date(dateValue) : undefined;
-  const minDateObj = minDate ? new Date(minDate) : undefined;
+  // Parse date string in local timezone to avoid UTC shift
+  const date = dateValue
+    ? (() => {
+        const [year, month, day] = dateValue.split('-').map(Number);
+        return new Date(year, month - 1, day);
+      })()
+    : undefined;
+  const minDateObj = minDate
+    ? (() => {
+        const [year, month, day] = minDate.split('-').map(Number);
+        return new Date(year, month - 1, day);
+      })()
+    : undefined;
 
   // Validate time when date matches minDate
   const handleTimeChange = (value: string) => {
@@ -78,11 +89,16 @@ export function DateTimePicker({
                 if (minDateObj && selectedDate < minDateObj) {
                   return;
                 }
+                // Format date in local timezone (YYYY-MM-DD)
+                const year = selectedDate.getFullYear();
+                const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const day = String(selectedDate.getDate()).padStart(2, '0');
+                const localDateStr = `${year}-${month}-${day}`;
                 // If selected date equals minDate, validate time
-                if (minDateObj && selectedDate.toISOString().split('T')[0] === minDate) {
+                if (minDateObj && localDateStr === minDate) {
                   // Time validation will be handled in handleTimeChange
                 }
-                onDateChange(selectedDate.toISOString().split('T')[0]);
+                onDateChange(localDateStr);
                 setOpen(false);
               }
             }}

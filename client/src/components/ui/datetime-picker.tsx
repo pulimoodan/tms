@@ -26,21 +26,42 @@ export function DateTimePickerSingle({
   minDateTime,
 }: DateTimePickerSingleProps) {
   const [open, setOpen] = React.useState(false);
+  // Parse ISO string to local date to avoid UTC shift
+  const parseISODate = (isoString: string): Date => {
+    const date = new Date(isoString);
+    // Create a new date in local timezone using the local components
+    return new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      date.getHours(),
+      date.getMinutes(),
+      date.getSeconds(),
+    );
+  };
+  
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
-    value ? new Date(value) : undefined,
+    value ? parseISODate(value) : undefined,
   );
   const [timeValue, setTimeValue] = React.useState<string>(
-    value ? format(new Date(value), 'HH:mm') : '',
+    value ? format(parseISODate(value), 'HH:mm') : '',
   );
 
-  const minDateObj = minDateTime ? new Date(minDateTime) : undefined;
-  const minDateStr = minDateObj ? minDateObj.toISOString().split('T')[0] : undefined;
+  const minDateObj = minDateTime ? parseISODate(minDateTime) : undefined;
+  const minDateStr = minDateObj
+    ? (() => {
+        const year = minDateObj.getFullYear();
+        const month = String(minDateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(minDateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })()
+    : undefined;
   const minTimeStr = minDateObj ? format(minDateObj, 'HH:mm') : undefined;
 
   // Update local state when value prop changes
   React.useEffect(() => {
     if (value) {
-      const date = new Date(value);
+      const date = parseISODate(value);
       if (!isNaN(date.getTime())) {
         setSelectedDate(date);
         setTimeValue(format(date, 'HH:mm'));
@@ -67,8 +88,14 @@ export function DateTimePickerSingle({
     setTimeValue(time);
 
     if (selectedDate && time) {
-      // Validate time if date equals minDate
-      if (minDateStr && selectedDate.toISOString().split('T')[0] === minDateStr && minTimeStr) {
+      // Validate time if date equals minDate (compare local date strings)
+      const selectedDateStr = (() => {
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })();
+      if (minDateStr && selectedDateStr === minDateStr && minTimeStr) {
         const [minHour, minMinute] = minTimeStr.split(':').map(Number);
         const [newHour, newMinute] = time.split(':').map(Number);
 

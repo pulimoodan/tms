@@ -198,33 +198,46 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
   const startKms = orderData?.startKms || 0;
   const waybillClosingSchema = createWaybillClosingSchema(startKms);
 
+  // Helper to format date in local timezone (avoid UTC shift)
+  const formatLocalDate = (dateValue: any): string => {
+    if (!dateValue) return '';
+    try {
+      const d = new Date(dateValue);
+      if (isNaN(d.getTime())) return '';
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return '';
+    }
+  };
+
+  // Helper to format time in local timezone
+  const formatLocalTime = (dateValue: any): string => {
+    if (!dateValue) return '';
+    try {
+      const d = new Date(dateValue);
+      if (isNaN(d.getTime())) return '';
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    } catch {
+      return '';
+    }
+  };
+
   const form = useForm<WaybillClosingFormValues>({
     resolver: zodResolver(waybillClosingSchema),
     defaultValues: {
-      arrivalAtLoadingDate: orderData?.arrivalAtLoading
-        ? new Date(orderData.arrivalAtLoading).toISOString().split('T')[0]
-        : '',
-      arrivalAtLoadingTime: orderData?.arrivalAtLoading
-        ? new Date(orderData.arrivalAtLoading).toTimeString().slice(0, 5)
-        : '',
-      dispatchFromLoadingDate: orderData?.dispatchFromLoading
-        ? new Date(orderData.dispatchFromLoading).toISOString().split('T')[0]
-        : '',
-      dispatchFromLoadingTime: orderData?.dispatchFromLoading
-        ? new Date(orderData.dispatchFromLoading).toTimeString().slice(0, 5)
-        : '',
-      arrivalAtOffloadingDate: orderData?.arrivalAtOffloading
-        ? new Date(orderData.arrivalAtOffloading).toISOString().split('T')[0]
-        : '',
-      arrivalAtOffloadingTime: orderData?.arrivalAtOffloading
-        ? new Date(orderData.arrivalAtOffloading).toTimeString().slice(0, 5)
-        : '',
-      completedUnloadingDate: orderData?.completedUnloading
-        ? new Date(orderData.completedUnloading).toISOString().split('T')[0]
-        : '',
-      completedUnloadingTime: orderData?.completedUnloading
-        ? new Date(orderData.completedUnloading).toTimeString().slice(0, 5)
-        : '',
+      arrivalAtLoadingDate: formatLocalDate(orderData?.arrivalAtLoading),
+      arrivalAtLoadingTime: formatLocalTime(orderData?.arrivalAtLoading),
+      dispatchFromLoadingDate: formatLocalDate(orderData?.completedLoading || orderData?.dispatchFromLoading),
+      dispatchFromLoadingTime: formatLocalTime(orderData?.completedLoading || orderData?.dispatchFromLoading),
+      arrivalAtOffloadingDate: formatLocalDate(orderData?.arrivalAtOffloading),
+      arrivalAtOffloadingTime: formatLocalTime(orderData?.arrivalAtOffloading),
+      completedUnloadingDate: formatLocalDate(orderData?.completedUnloading),
+      completedUnloadingTime: formatLocalTime(orderData?.completedUnloading),
       kmIn: orderData?.kmIn?.toString() || '',
       podNumber: orderData?.podNumber || '',
       podDocument: orderData?.podDocument || '',
@@ -248,30 +261,14 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
           if (response.data.success && response.data.result) {
             const order = response.data.result;
             form.reset({
-              arrivalAtLoadingDate: order.arrivalAtLoading
-                ? new Date(order.arrivalAtLoading).toISOString().split('T')[0]
-                : '',
-              arrivalAtLoadingTime: order.arrivalAtLoading
-                ? new Date(order.arrivalAtLoading).toTimeString().slice(0, 5)
-                : '',
-              dispatchFromLoadingDate: order.dispatchFromLoading
-                ? new Date(order.dispatchFromLoading).toISOString().split('T')[0]
-                : '',
-              dispatchFromLoadingTime: order.dispatchFromLoading
-                ? new Date(order.dispatchFromLoading).toTimeString().slice(0, 5)
-                : '',
-              arrivalAtOffloadingDate: order.arrivalAtOffloading
-                ? new Date(order.arrivalAtOffloading).toISOString().split('T')[0]
-                : '',
-              arrivalAtOffloadingTime: order.arrivalAtOffloading
-                ? new Date(order.arrivalAtOffloading).toTimeString().slice(0, 5)
-                : '',
-              completedUnloadingDate: order.completedUnloading
-                ? new Date(order.completedUnloading).toISOString().split('T')[0]
-                : '',
-              completedUnloadingTime: order.completedUnloading
-                ? new Date(order.completedUnloading).toTimeString().slice(0, 5)
-                : '',
+              arrivalAtLoadingDate: formatLocalDate(order.arrivalAtLoading),
+              arrivalAtLoadingTime: formatLocalTime(order.arrivalAtLoading),
+              dispatchFromLoadingDate: formatLocalDate(order.completedLoading || order.dispatchFromLoading),
+              dispatchFromLoadingTime: formatLocalTime(order.completedLoading || order.dispatchFromLoading),
+              arrivalAtOffloadingDate: formatLocalDate(order.arrivalAtOffloading),
+              arrivalAtOffloadingTime: formatLocalTime(order.arrivalAtOffloading),
+              completedUnloadingDate: formatLocalDate(order.completedUnloading),
+              completedUnloadingTime: formatLocalTime(order.completedUnloading),
               kmIn: order.kmIn?.toString() || '',
               podNumber: order.podNumber || '',
               podDocument: order.podDocument || '',
@@ -419,13 +416,17 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
   ): string | undefined => {
     if (!date || !time) return undefined;
     try {
-      return new Date(`${date}T${time}`).toISOString();
+      // Create date in local timezone, then convert to ISO
+      const [year, month, day] = date.split('-').map(Number);
+      const [hours, minutes] = time.split(':').map(Number);
+      const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+      return localDate.toISOString();
     } catch {
       return undefined;
     }
   };
 
-  // Helper to split ISO datetime string into date and time
+  // Helper to split ISO datetime string into date and time (using local timezone)
   const splitDateTime = (
     isoString: string | undefined,
   ): { date: string; time: string } | undefined => {
@@ -433,9 +434,15 @@ export function WaybillClosingForm({ orderId, orderData, onComplete }: WaybillCl
     try {
       const date = new Date(isoString);
       if (isNaN(date.getTime())) return undefined;
+      // Use local date components to avoid timezone shift
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
       return {
-        date: date.toISOString().split('T')[0],
-        time: date.toTimeString().slice(0, 5),
+        date: `${year}-${month}-${day}`,
+        time: `${hours}:${minutes}`,
       };
     } catch {
       return undefined;

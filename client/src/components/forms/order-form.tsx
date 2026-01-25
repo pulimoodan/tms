@@ -187,6 +187,35 @@ export function OrderForm({
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
 
+  // Helper to format date in local timezone (avoid UTC shift)
+  const formatLocalDate = (dateValue: any): string => {
+    if (!dateValue) return '';
+    try {
+      const d = new Date(dateValue);
+      if (isNaN(d.getTime())) return '';
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return '';
+    }
+  };
+
+  // Helper to format time in local timezone
+  const formatLocalTime = (dateValue: any): string => {
+    if (!dateValue) return '';
+    try {
+      const d = new Date(dateValue);
+      if (isNaN(d.getTime())) return '';
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    } catch {
+      return '';
+    }
+  };
+
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema),
     defaultValues: {
@@ -299,12 +328,10 @@ export function OrderForm({
                 return [{ description: '', weight: '', weightUom: 'TON', volume: '', value: '' }];
               })(),
               startKms: orderData.startKms?.toString() || '',
-              etaDate: orderData.eta ? new Date(orderData.eta).toISOString().slice(0, 10) : '',
-              etaTime: orderData.eta ? new Date(orderData.eta).toTimeString().slice(0, 5) : '',
-              requestedDate: orderData.requestedDate
-                ? new Date(orderData.requestedDate).toISOString().slice(0, 10)
-                : '',
-              requestedTime: orderData.requestedTime || '',
+              etaDate: formatLocalDate(orderData.eta),
+              etaTime: formatLocalTime(orderData.eta),
+              requestedDate: formatLocalDate(orderData.requestedDate),
+              requestedTime: orderData.requestedTime || formatLocalTime(orderData.requestedDate),
               arrivalAtLoading: orderData.arrivalAtLoading
                 ? new Date(orderData.arrivalAtLoading).toISOString().slice(0, 16)
                 : '',
@@ -553,10 +580,21 @@ export function OrderForm({
         startKms: values.startKms ? parseInt(values.startKms) : undefined,
         eta:
           values.etaDate && values.etaTime
-            ? new Date(`${values.etaDate}T${values.etaTime}`).toISOString()
+            ? (() => {
+                // Create date in local timezone, then convert to ISO
+                const [year, month, day] = values.etaDate.split('-').map(Number);
+                const [hours, minutes] = values.etaTime.split(':').map(Number);
+                const localDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+                return localDate.toISOString();
+              })()
             : undefined,
         requestedDate: values.requestedDate
-          ? new Date(values.requestedDate).toISOString()
+          ? (() => {
+              // Create date in local timezone, then convert to ISO
+              const [year, month, day] = values.requestedDate.split('-').map(Number);
+              const localDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+              return localDate.toISOString();
+            })()
           : undefined,
         requestedTime:
           values.requestedTime && values.requestedTime.trim() ? values.requestedTime : undefined,
